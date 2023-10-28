@@ -11,7 +11,7 @@ using WaveformReader = capnp::List<int16_t, capnp::Kind::PRIMITIVE>::Reader;
 
 int main() {
 
-    std::map<std::pair<uint8_t, uint8_t>, WaveformReader> waveforms;
+    std::map<std::pair<uint8_t, uint8_t>, std::vector<int16_t>> waveforms;
 
     // Open the .cap file for reading
     int fd = open("Run_000001.cap", O_RDONLY);
@@ -37,20 +37,19 @@ int main() {
             // // Access event fields
             uint8_t board = event.getBoard();
             uint8_t channel = event.getChannel();
-            // WaveformReader waveform1 = event.getWaveform1();
-            waveforms[std::make_pair(board, channel)] = event.getWaveform1();
+            auto waveform = event.getWaveform1();
+            for(const auto& value : waveform) {
+                waveforms[std::make_pair(board, channel)].push_back(value);
+            }
         }
 
     }
 
-    ///Print the stored values for the wave form
-    for (const auto waveform : waveforms) {
-        std::cout << "Board " << static_cast<int>(waveform.first.first) << " and Channel " 
-            << static_cast<int>(waveform.first.second) << ":" << std::endl;
-        auto waveform_values = waveform.second;
-        for(int i = 0; i < waveform_values.size(); i++) {
-            int value = static_cast<int>(waveform_values[i]);
-            std::cout << value << " ";
+    for(const auto& element : waveforms) {
+        std::cout << "Board " << static_cast<int>(element.first.first) << " Channel " 
+            << static_cast<int>(element.first.second) << std::endl;
+        for(int i = 0; i < element.second.size(); i++) {
+            std::cout << static_cast<int>((element.second)[i]) << " ";
         }
         std::cout << std::endl;
     }
