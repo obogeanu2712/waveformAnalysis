@@ -15,14 +15,30 @@ using json = nlohmann::json;
 
 int main() {
 
-    std::ofstream json_file("counts.json");
-    std::ofstream counts_file("counts.txt");
+    std::ofstream waveforms_file("waveforms.txt");
+
+
     std::ifstream json_config_file("config.json");
-    json jsonCounts;
     json jsonConfig;
 
+    //Read JSON file and store it inside an object
+
+    json_config_file >> jsonConfig;
+
+
     std::map<std::pair<uint8_t, uint8_t>, std::vector<int16_t>> waveforms;
-    std::map<std::pair<uint8_t, uint8_t>, int> waveformCounts;
+
+    //Store the number of waveforms to be extracted
+
+    std::map<std::pair<uint8_t, uint8_t>, int> waveforms_number;
+
+    json jsonArrayofarrays = jsonConfig["detectors"];
+
+    for(int board = 0; board < jsonArrayofarrays.size(); board++) {
+        for(int channel = 0; channel < jsonArrayofarrays[board].size(); channel++) {
+            waveforms_number[std::make_pair(board, channel)] = jsonArrayofarrays[board][channel];
+        }
+    }
 
     // Open the .cap file for reading
     int fd = open("Run_000001.cap", O_RDONLY);
@@ -40,33 +56,26 @@ int main() {
 
         // Iterate through the events
         for (auto event : waveEvents) {
-            // // Access event fields
+            // // Access event fields and extract necessary waveforms
             uint8_t board = event.getBoard();
             uint8_t channel = event.getChannel();
-
             std::pair BoardChannelKey = std::make_pair(board, channel);
+            //Check if there are any other waveforms to store and store them
+            if(waveforms_number[BoardChannelKey]) {
+                auto waveform_list = event.getWaveform1();
 
-            auto waveform_list = event.getWaveform1();
-
-            if(waveform_list.size()) waveformCounts[BoardChannelKey]++;
+                for(const auto& value : waveform_list) {
+                    waveforms[BoardChannelKey].push_back(value);
+                }
+                waveforms_number[BoardChannelKey]--;
+            }
+            
+            
         }
 
     }
 
-    for (const auto& waveform : waveformCounts) {
-        int board = static_cast<int>(waveform.first.first);
-        int channel = static_cast<int>(waveform.first.second);
-        int counts = static_cast<int>(waveform.second);
-        jsonCounts["detectors"][board][channel] = counts;
-        counts_file << "Board " << board << " Channel " << channel << " has  " << counts 
-        << " waveform counts" << std::endl << std::endl;
-    }
-
-
-
-
-    json_file << jsonCounts.dump(2);
-
-    json_file.close();
-    counts_file.close();
+    
+    json_config_file.close();
+    waveforms_file.close();
 }
