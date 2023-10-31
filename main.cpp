@@ -8,14 +8,17 @@
 #include <vector>
 #include "json.hpp"
 #include <fstream>
+#include <TFile.h>
+#include <TGraph.h>
+#include <TString.h>
+
+
 
 
 using WaveformReader = capnp::List<int16_t, capnp::Kind::PRIMITIVE>::Reader;
 using json = nlohmann::json;
 
 int main() {
-
-    std::ofstream waveforms_file("waveforms.txt");
 
 
     std::ifstream json_config_file("config.json");
@@ -69,13 +72,9 @@ int main() {
                 }
                 waveforms_number[BoardChannelKey]--;
             }
-            
-            
         }
-
     }
 
-    
+
     json_config_file.close();
-    waveforms_file.close();
 }
