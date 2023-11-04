@@ -1,2 +1,4 @@
 Run_000001.cap
+eventProto.capnp.h
+eventProto.capnp.c++
 .vscode
