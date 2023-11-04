@@ -11,11 +11,8 @@
 #include <TFile.h>
 #include <TGraph.h>
 #include <TString.h>
+#include <string>
 
-
-
-
-using WaveformReader = capnp::List<int16_t, capnp::Kind::PRIMITIVE>::Reader;
 using json = nlohmann::json;
 
 int main() {
@@ -28,23 +25,19 @@ int main() {
 
     json_config_file >> jsonConfig;
 
-
-    std::map<std::pair<uint8_t, uint8_t>, std::vector<int16_t>> waveforms;
+    std::map<std::pair<uint8_t, uint8_t>, std::vector<std::vector<int16_t>>> waveforms;
 
     //Store the number of waveforms to be extracted
 
-    std::map<std::pair<uint8_t, uint8_t>, int> waveforms_number;
+    
 
-    json jsonArrayofarrays = jsonConfig["detectors"];
+    auto counts = jsonConfig["detectors"].get<std::vector<std::vector<int>>>();
 
-    for(int board = 0; board < jsonArrayofarrays.size(); board++) {
-        for(int channel = 0; channel < jsonArrayofarrays[board].size(); channel++) {
-            waveforms_number[std::make_pair(board, channel)] = jsonArrayofarrays[board][channel];
-        }
-    }
 
     // Open the .cap file for reading
-    int fd = open("Run_000001.cap", O_RDONLY);
+
+    std::string file_name = jsonConfig["file_name"];
+    int fd = open(file_name.c_str(), O_RDONLY);
 
     kj::FdInputStream inputStream(fd);
     kj::BufferedInputStreamWrapper bufferedStream(inputStream);
@@ -64,17 +57,36 @@ int main() {
             uint8_t channel = event.getChannel();
             std::pair BoardChannelKey = std::make_pair(board, channel);
             //Check if there are any other waveforms to store and store them
-            if(waveforms_number[BoardChannelKey]) {
+            if(counts[board][channel]) {
                 auto waveform_list = event.getWaveform1();
-
+                std::vector<int16_t> waveform;
                 for(const auto& value : waveform_list) {
-                    waveforms[BoardChannelKey].push_back(value);
+                    waveform.push_back(value);
                 }
-                waveforms_number[BoardChannelKey]--;
+                waveforms[BoardChannelKey].push_back(waveform);
+                counts[board][channel]--;
             }
         }
     }
 
+    for(const auto& waveforms_vector : waveforms) {
+        int board = static_cast<int>(waveforms_vector.first.first);
+        int channel = static_cast<int>(waveforms_vector.first.second);
 
-    json_config_file.close();
+        TFile* rootFile = new TFile(Form("Board%dChannel%d.root", board, channel), "RECREATE");
+
+        std::vector<std::vector<int16_t>> values = waveforms_vector.second;
+
+        for(int waveform_index = 0; waveform_index < values.size(); waveform_index++) {
+            TGraph* graph = new TGraph(values[waveform_index].size());
+            for(int point_index = 0; point_index < values[waveform_index].size(); point_index++) {
+                graph->SetPoint(point_index, point_index, values[waveform_index][point_index]);
+            }
+            graph->Write(Form("Waveform no. %d", waveform_index));
+            delete graph;
+        }
+
+        delete rootFile;
+    }
+
 }
