@@ -11,11 +11,13 @@
 #include <TFile.h>
 #include <TGraph.h>
 #include <TString.h>
+#include <TApplication.h>
+#include <TCanvas.h>
 #include <string>
 
 using json = nlohmann::json;
 
-int main() {
+int main(int argc, char** argv) {
 
 
     std::ifstream json_config_file("config.json");
@@ -35,7 +37,6 @@ int main() {
 
 
     // Open the .cap file for reading
-
     std::string file_name = jsonConfig["file_name"];
     int fd = open(file_name.c_str(), O_RDONLY);
 
@@ -69,11 +70,17 @@ int main() {
         }
     }
 
+    //Display waveforms in TApp
+
+    TApplication app("Display waveforms", &argc, argv);
+
+    // TCanvas canvas("Canvas", "Waveforms", 800, 600);
+
     for(const auto& waveforms_vector : waveforms) {
         int board = static_cast<int>(waveforms_vector.first.first);
         int channel = static_cast<int>(waveforms_vector.first.second);
 
-        TFile* rootFile = new TFile(Form("Board%dChannel%d.root", board, channel), "RECREATE");
+        // TFile* rootFile = new TFile(Form("Board%dChannel%d.root", board, channel), "RECREATE");
 
         std::vector<std::vector<int16_t>> values = waveforms_vector.second;
 
@@ -82,11 +89,14 @@ int main() {
             for(int point_index = 0; point_index < values[waveform_index].size(); point_index++) {
                 graph->SetPoint(point_index, point_index, values[waveform_index][point_index]);
             }
-            graph->Write(Form("Waveform no. %d", waveform_index));
+            // graph->Write(Form("Waveform no. %d", waveform_index));
+            graph->Draw("APL");
+            gPad -> Update();
+            gPad -> WaitPrimitive("ggg");
             delete graph;
         }
 
-        delete rootFile;
+        // delete rootFile;
     }
 
 }
