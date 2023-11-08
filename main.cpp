@@ -80,8 +80,12 @@ int main(int argc, char** argv) {
 
         std::vector<std::vector<int16_t>> values = waveforms_vector.second;
         
-        for(int waveform_index = 0; waveform_index < values.size(); waveform_index++) {
-            drawWaveform(values[waveform_index]);
+
+        drawWaveform(&values[0]);
+        for(int waveform_index = 1; waveform_index < values.size(); waveform_index++) {
+            drawWaveform(&values[waveform_index - 1]);
+            drawWaveform(&values[waveform_index]);
+            drawTwoWaveforms(&values[waveform_index - 1], &values[waveform_index]);
         }
     }
 

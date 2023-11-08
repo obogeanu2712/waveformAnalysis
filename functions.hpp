@@ -3,6 +3,7 @@
 #ifndef FUNCTIONS_H
 #define FUNCTIONS_H
 
-void drawWaveform(std::vector<__INT16_TYPE__> values);
+void drawWaveform(std::vector<__INT16_TYPE__>* values);
+void drawTwoWaveforms(std::vector<__INT16_TYPE__>* values1, std::vector<__INT16_TYPE__>* values2);
 
 #endif
