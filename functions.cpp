@@ -39,17 +39,21 @@ void drawTwoWaveforms(std::vector<int16_t>* values1, std::vector<int16_t>* value
     delete graph2;
 }
 
-std::vector<int16_t>* subtractBackground(std::vector<int16_t>* values) {
+std::vector<int16_t>* subtractBackground(std::vector<int16_t>* values, int noise_samples) {
 
     std::vector<int16_t>* result = new std::vector<int16_t>;
 
     result->assign(values->begin(), values->end());
 
-    int64_t integral = (std::accumulate(values->begin(), values->end(), 0))/(values->size());
+    // int64_t integral = (std::accumulate(values->begin(), values->end(), 0))/(values->size());
 
+    // for(int i = 0; i < result->size(); i++) {
+    //     (*result)[i] -= integral;
+    // }
+
+    int64_t mean_noise = (std::accumulate(values->begin(), values->begin() + noise_samples, 0)) / noise_samples;
     for(int i = 0; i < result->size(); i++) {
-        (*result)[i] -= integral;
+        (*result)[i] -= mean_noise;
     }
-
     return result;
 }

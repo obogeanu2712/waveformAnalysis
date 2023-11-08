@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
     
 
     auto counts = jsonConfig["detectors"].get<std::vector<std::vector<int>>>();
-
+    int noise_samples = jsonConfig["noise_samples"];
 
     // Open the .cap file for reading
     std::string file_name = jsonConfig["file_name"];
@@ -82,7 +82,7 @@ int main(int argc, char** argv) {
 
         for(int waveform_index = 0; waveform_index < values.size(); waveform_index++) {
             drawWaveform(&values[waveform_index]);
-            drawWaveform(subtractBackground(&values[waveform_index]));
+            drawWaveform(subtractBackground(&values[waveform_index], noise_samples));
         }
     }
 
