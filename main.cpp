@@ -14,7 +14,7 @@
 #include <TApplication.h>
 #include <TCanvas.h>
 #include <string>
-
+#include "functions.hpp" //my header
 using json = nlohmann::json;
 
 int main(int argc, char** argv) {
@@ -74,29 +74,15 @@ int main(int argc, char** argv) {
 
     TApplication app("Display waveforms", &argc, argv);
 
-    // TCanvas canvas("Canvas", "Waveforms", 800, 600);
-
     for(const auto& waveforms_vector : waveforms) {
         int board = static_cast<int>(waveforms_vector.first.first);
         int channel = static_cast<int>(waveforms_vector.first.second);
 
-        // TFile* rootFile = new TFile(Form("Board%dChannel%d.root", board, channel), "RECREATE");
-
         std::vector<std::vector<int16_t>> values = waveforms_vector.second;
-
+        
         for(int waveform_index = 0; waveform_index < values.size(); waveform_index++) {
-            TGraph* graph = new TGraph(values[waveform_index].size());
-            for(int point_index = 0; point_index < values[waveform_index].size(); point_index++) {
-                graph->SetPoint(point_index, point_index, values[waveform_index][point_index]);
-            }
-            // graph->Write(Form("Waveform no. %d", waveform_index));
-            graph->Draw("APL");
-            gPad -> Update();
-            gPad -> WaitPrimitive("ggg");
-            delete graph;
+            drawWaveform(values[waveform_index]);
         }
-
-        // delete rootFile;
     }
 
 }
