@@ -1,6 +1,9 @@
 #include "functions.hpp"
 #include <TGraph.h>
 #include <TCanvas.h>
+#include <TString.h>
+#include <TText.h>
+#include <numeric>
 void drawWaveform(std::vector<int16_t>* values) {
     TGraph* graph = new TGraph(values -> size());
     for(int point_index = 0; point_index < values -> size(); point_index++) {
@@ -8,6 +11,7 @@ void drawWaveform(std::vector<int16_t>* values) {
     }
     graph->Draw("APL");
     gPad -> Update();
+
     gPad -> WaitPrimitive("ggg");
     
     delete graph;
@@ -33,4 +37,19 @@ void drawTwoWaveforms(std::vector<int16_t>* values1, std::vector<int16_t>* value
 
     delete graph1;
     delete graph2;
+}
+
+std::vector<int16_t>* subtractBackground(std::vector<int16_t>* values) {
+
+    std::vector<int16_t>* result = new std::vector<int16_t>;
+
+    result->assign(values->begin(), values->end());
+
+    int64_t integral = (std::accumulate(values->begin(), values->end(), 0))/(values->size());
+
+    for(int i = 0; i < result->size(); i++) {
+        (*result)[i] -= integral;
+    }
+
+    return result;
 }
