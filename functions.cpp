@@ -57,3 +57,15 @@ std::vector<int16_t>* subtractBackground(std::vector<int16_t>* values, int noise
     }
     return result;
 }
+
+std::vector<int16_t>* reverseWaveform(std::vector<int16_t>* values) {
+
+    std::vector<int16_t>* result = new std::vector<int16_t>;
+
+    for(int i = 0; i < values->size(); i++) {
+        result->push_back(-(*values)[i]);
+    }
+
+    return result;
+
+}

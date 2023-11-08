@@ -83,6 +83,9 @@ int main(int argc, char** argv) {
         for(int waveform_index = 0; waveform_index < values.size(); waveform_index++) {
             drawWaveform(&values[waveform_index]);
             drawWaveform(subtractBackground(&values[waveform_index], noise_samples));
+            drawWaveform(reverseWaveform(subtractBackground(&values[waveform_index], noise_samples)));
+            drawTwoWaveforms(subtractBackground(&values[waveform_index], noise_samples), 
+                                reverseWaveform(subtractBackground(&values[waveform_index], noise_samples)));
         }
     }
 
