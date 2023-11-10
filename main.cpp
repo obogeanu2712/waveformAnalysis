@@ -13,6 +13,7 @@
 #include <TString.h>
 #include <TApplication.h>
 #include <TCanvas.h>
+#include <TLine.h>
 #include <string>
 #include "functions.hpp" //my header
 using json = nlohmann::json;
@@ -24,20 +25,16 @@ int main(int argc, char** argv) {
     json jsonConfig;
 
     //Read JSON file and store it inside an object
-
     json_config_file >> jsonConfig;
+    auto counts = jsonConfig["detectors"].get<std::vector<std::vector<int>>>(); //Store the number of waveforms to be extracted
+    int16_t noise_samples = jsonConfig["noise_samples"];
+    std::string file_name = jsonConfig["file_name"];
+    int16_t threshold = jsonConfig["threshold"];
 
     std::map<std::pair<uint8_t, uint8_t>, std::vector<std::vector<int16_t>>> waveforms;
 
-    //Store the number of waveforms to be extracted
-
-    
-
-    auto counts = jsonConfig["detectors"].get<std::vector<std::vector<int>>>();
-    int noise_samples = jsonConfig["noise_samples"];
-
     // Open the .cap file for reading
-    std::string file_name = jsonConfig["file_name"];
+    
     int fd = open(file_name.c_str(), O_RDONLY);
 
     kj::FdInputStream inputStream(fd);
@@ -81,11 +78,13 @@ int main(int argc, char** argv) {
         std::vector<std::vector<int16_t>> values = waveforms_vector.second;
 
         for(int waveform_index = 0; waveform_index < values.size(); waveform_index++) {
+            // std::vector<int16_t>* displayed_waveform = reverseWaveform(subtractBackground(&values[waveform_index], noise_samples));
+            // drawWaveform(displayed_waveform);
             drawWaveform(&values[waveform_index]);
             drawWaveform(subtractBackground(&values[waveform_index], noise_samples));
-            drawWaveform(reverseWaveform(subtractBackground(&values[waveform_index], noise_samples)));
-            drawTwoWaveforms(subtractBackground(&values[waveform_index], noise_samples), 
-                                reverseWaveform(subtractBackground(&values[waveform_index], noise_samples)));
+            drawWaveform(reverseWaveform(subtractBackground(&values[waveform_index],noise_samples)));
+            // uint16_t timestamp = leadingEdgeDiscrimination(displayed_waveform, noise_samples, threshold);
+            // drawPointOnGraph(timestamp, (*displayed_waveform)[timestamp]);
         }
     }
 
