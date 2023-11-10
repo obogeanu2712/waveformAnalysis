@@ -10,4 +10,5 @@ std::vector<__INT16_TYPE__>* subtractBackground(std::vector<__INT16_TYPE__>* val
 std::vector<__INT16_TYPE__>* reverseWaveform(std::vector<__INT16_TYPE__>* values);
 __INT16_TYPE__ leadingEdgeDiscrimination(std::vector<__INT16_TYPE__>* values, __INT16_TYPE__ threshold);
 __INT16_TYPE__ energyExtractionMax(std::vector<__INT16_TYPE__>*values);
+__INT16_TYPE__ energyExtractionGate(std::vector<__INT16_TYPE__>* values, __INT16_TYPE__ threshold, __INT16_TYPE__ gateLength);
 #endif
