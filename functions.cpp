@@ -103,5 +103,5 @@ int16_t energyExtractionMax(std::vector<int16_t>*values) { //implemented for pos
 int16_t energyExtractionGate(std::vector<int16_t>* values, int16_t threshold, int16_t gateLength) {
     int16_t pulseBegin = leadingEdgeDiscrimination(values, threshold);
     int16_t pulseEnd = pulseBegin + gateLength;
-    return std::accumulate(values->begin() + pulseBegin, values->end() + pulseEnd, 0); 
+    return std::accumulate(values->begin() + pulseBegin, values->end() + pulseEnd, 0) / gateLength; 
 }
