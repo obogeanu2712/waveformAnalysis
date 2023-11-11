@@ -88,11 +88,9 @@ int16_t leadingEdgeDiscrimination(std::vector<int16_t>* values, int16_t threshol
     int16_t timestamp;
     for(int16_t point_index = 0; point_index < values->size(); point_index++) {
         if((*values)[point_index] > threshold) {
-            timestamp = point_index;
-            break;
+            return timestamp;
         }
     }
-    return timestamp;
 }
 
 int16_t energyExtractionMax(std::vector<int16_t>*values) { //implemented for positive signals with extracted baseline
