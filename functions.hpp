@@ -6,7 +6,6 @@
 
 void drawWaveform(const std::shared_ptr<std::vector<int16_t>> &values);
 void drawTwoWaveforms(const std::shared_ptr<std::vector<int16_t>> &values1, const std::shared_ptr<std::vector<int16_t>> &values2);
-void drawHistogram(const std::shared_ptr<TH1I>);
 std::shared_ptr<std::vector<int16_t>> subtractBackground(const std::shared_ptr<std::vector<int16_t>> &values, int16_t noise_samples);
 std::shared_ptr<std::vector<int16_t>> reverseWaveform(const std::shared_ptr<std::vector<int16_t>> &values);
 int16_t leadingEdgeDiscrimination(const std::shared_ptr<std::vector<int16_t>> &values, int16_t threshold);
