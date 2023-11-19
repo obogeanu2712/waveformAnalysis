@@ -14,6 +14,7 @@
 #include <TApplication.h>
 #include <TCanvas.h>
 #include <TLine.h>
+#include <TH1I.h>
 #include <string>
 #include "functions.hpp" //my header
 #include <memory>
@@ -22,21 +23,21 @@ using json = nlohmann::json;
 int main(int argc, char **argv)
 {
 
-    std::ifstream json_config_file("config.json");
+    std::ifstream jsonConfigFile("config.json");
     json jsonConfig;
 
     // Read JSON file and store it inside an object
-    json_config_file >> jsonConfig;
+    jsonConfigFile >> jsonConfig;
     auto counts = jsonConfig["detectors"].get<std::vector<std::vector<int>>>(); // Store the number of waveforms to be extracted
-    int16_t noise_samples = jsonConfig["noise_samples"];
-    std::string file_name = jsonConfig["file_name"];
+    int16_t noiseSamples = jsonConfig["noiseSamples"];
+    std::string fileName = jsonConfig["fileName"];
     int16_t threshold = jsonConfig["threshold"];
 
     std::map<std::pair<uint8_t, uint8_t>, std::vector<std::vector<int16_t>>> waveforms;
 
     // Open the .cap file for reading
 
-    int fd = open(file_name.c_str(), O_RDONLY);
+    int fd = open(fileName.c_str(), O_RDONLY);
 
     kj::FdInputStream inputStream(fd);
     kj::BufferedInputStreamWrapper bufferedStream(inputStream);
@@ -76,23 +77,27 @@ int main(int argc, char **argv)
 
     TApplication app("Display waveforms", &argc, argv);
 
-    for (const auto &waveforms_vector : waveforms)
+    for (const auto &waveformsVector : waveforms)
     {
-        int board = static_cast<int>(waveforms_vector.first.first);
-        int channel = static_cast<int>(waveforms_vector.first.second);
+        int board = static_cast<int>(waveformsVector.first.first);
+        int channel = static_cast<int>(waveformsVector.first.second);
 
-        std::vector<std::vector<int16_t>> values = waveforms_vector.second;
+        std::vector<std::vector<int16_t>> values = waveformsVector.second;
 
-        for (int waveform_index = 0; waveform_index < values.size(); waveform_index++)
+        for (int waveformIndex = 0; waveformIndex < values.size(); waveformIndex++)
         {
-            std::shared_ptr<std::vector<int16_t>> waveform1 = std::make_shared<std::vector<int16_t>>(values[waveform_index]);
+            std::shared_ptr<std::vector<int16_t>> waveform1 = std::make_shared<std::vector<int16_t>>(values[waveformIndex]);
             // std::shared_ptr<std::vector<int16_t>> waveform2 = std::make_shared<std::vector<int16_t>>(values[waveform_index]);
             // drawWaveform(waveform1);
             // drawWaveform(waveform2);
             // drawTwoWaveforms(waveform1, waveform2);
             drawWaveform(waveform1);
-            drawWaveform(subtractBackground(waveform1, noise_samples));
-            drawWaveform(reverseWaveform(subtractBackground(waveform1, noise_samples)));
+            drawWaveform(subtractBackground(waveform1, noiseSamples));
+            drawWaveform(reverseWaveform(subtractBackground(waveform1, noiseSamples)));
         }
     }
+
+    // Display Energy Histograms
+
+    std::map<std::pair<uint8_t, uint8_t>, std::shared_ptr<TH1I>> energyHistograms;
 }
