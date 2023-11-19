@@ -63,15 +63,7 @@ std::shared_ptr<std::vector<int16_t>> subtractBackground(const std::shared_ptr<s
 
     std::shared_ptr<std::vector<int16_t>> result = std::make_shared<std::vector<int16_t>>();
 
-    // result->assign(values->begin(), values->end());
-
     int16_t meanBackground = (std::accumulate(values->begin(), values->begin() + noise_samples, 0)) / noise_samples;
-
-    // for (int i = 0; i < result->size(); i++)
-    // {
-    //     (*result)[i] -= mean_noise;
-    // }
-
     std::transform(values->begin(), values->end(),
                    std::back_inserter(*result), [meanBackground](int16_t element)
                    { return element - meanBackground; });
@@ -95,7 +87,7 @@ int16_t leadingEdgeDiscrimination(const std::shared_ptr<std::vector<int16_t>> &v
 {
     std::vector<int16_t>::iterator it = std::find_if(values->begin(), values->end(), [threshold](int16_t element)
                                                      { return element > threshold; });
-    return *it;
+    return std::distance(values->begin(), it);
 }
 int16_t energyExtractionMax(const std::shared_ptr<std::vector<int16_t>> &values)
 { // implemented for positive signals with extracted baseline
