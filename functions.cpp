@@ -10,9 +10,9 @@
 void drawWaveform(const std::shared_ptr<std::vector<int16_t>> &values)
 {
     TGraph *graph = new TGraph(values->size());
-    for (int point_index = 0; point_index < values->size(); point_index++)
+    for (int pointIndex = 0; pointIndex < values->size(); pointIndex++)
     {
-        graph->SetPoint(point_index, point_index, (*values)[point_index]);
+        graph->SetPoint(pointIndex, pointIndex, (*values)[pointIndex]);
     }
     graph->Draw("APL");
     gPad->Update();
@@ -27,14 +27,14 @@ void drawTwoWaveforms(const std::shared_ptr<std::vector<int16_t>> &values1, cons
     graph1 = new TGraph(values1->size());
     graph2 = new TGraph(values2->size());
 
-    for (int point_index = 0; point_index < values1->size(); point_index++)
+    for (int pointIndex = 0; pointIndex < values1->size(); pointIndex++)
     {
-        graph1->SetPoint(point_index, point_index, (*values1)[point_index]);
+        graph1->SetPoint(pointIndex, pointIndex, (*values1)[pointIndex]);
     }
 
-    for (int point_index = 0; point_index < values2->size(); point_index++)
+    for (int pointIndex = 0; pointIndex < values2->size(); pointIndex++)
     {
-        graph2->SetPoint(point_index, point_index, (*values2)[point_index]);
+        graph2->SetPoint(pointIndex, pointIndex, (*values2)[pointIndex]);
     }
 
     graph1->Draw("APL");
@@ -63,13 +63,19 @@ std::shared_ptr<std::vector<int16_t>> subtractBackground(const std::shared_ptr<s
 
     std::shared_ptr<std::vector<int16_t>> result = std::make_shared<std::vector<int16_t>>();
 
-    result->assign(values->begin(), values->end());
+    // result->assign(values->begin(), values->end());
 
-    int64_t mean_noise = (std::accumulate(values->begin(), values->begin() + noise_samples, 0)) / noise_samples;
-    for (int i = 0; i < result->size(); i++)
-    {
-        (*result)[i] -= mean_noise;
-    }
+    int16_t meanBackground = (std::accumulate(values->begin(), values->begin() + noise_samples, 0)) / noise_samples;
+
+    // for (int i = 0; i < result->size(); i++)
+    // {
+    //     (*result)[i] -= mean_noise;
+    // }
+
+    std::transform(values->begin(), values->end(),
+                   std::back_inserter(*result), [meanBackground](int16_t element)
+                   { return element - meanBackground; });
+
     return result;
 }
 
@@ -78,27 +84,19 @@ std::shared_ptr<std::vector<int16_t>> reverseWaveform(const std::shared_ptr<std:
 
     std::shared_ptr<std::vector<int16_t>> result = std::make_shared<std::vector<int16_t>>();
 
-    for (int i = 0; i < values->size(); i++)
-    {
-        result->push_back(-(*values)[i]);
-    }
+    std::transform(values->begin(), values->end(),
+                   std::back_inserter(*result), [](int16_t element)
+                   { return -element; });
 
     return result;
 }
 
 int16_t leadingEdgeDiscrimination(const std::shared_ptr<std::vector<int16_t>> &values, int16_t threshold)
 {
-    // implemented for positive signals with extracted baseline
-    for (int16_t point_index = 0; point_index < values->size(); point_index++)
-    {
-        if ((*values)[point_index] > threshold)
-        {
-            return point_index;
-        }
-    }
-    return 0;
+    std::vector<int16_t>::iterator it = std::find_if(values->begin(), values->end(), [threshold](int16_t element)
+                                                     { return element > threshold; });
+    return *it;
 }
-
 int16_t energyExtractionMax(const std::shared_ptr<std::vector<int16_t>> &values)
 { // implemented for positive signals with extracted baseline
     std::vector<int16_t>::iterator max = std::max_element(values->begin(), values->end());
