@@ -1,14 +1,13 @@
 #include <vector>
 #include <cstdint>
-#ifndef FUNCTIONS_H
-#define FUNCTIONS_H
+#include <memory>
 
-void drawWaveform(std::vector<__INT16_TYPE__>* values);
-void drawTwoWaveforms(std::vector<__INT16_TYPE__>* values1, std::vector<__INT16_TYPE__>* values2);
-void drawPointOnGraph(__INT16_TYPE__ x, __INT16_TYPE__ y);
-std::vector<__INT16_TYPE__>* subtractBackground(std::vector<__INT16_TYPE__>* values, __INT16_TYPE__ noise_samples);
-std::vector<__INT16_TYPE__>* reverseWaveform(std::vector<__INT16_TYPE__>* values);
-__INT16_TYPE__ leadingEdgeDiscrimination(std::vector<__INT16_TYPE__>* values, __INT16_TYPE__ threshold);
-__INT16_TYPE__ energyExtractionMax(std::vector<__INT16_TYPE__>*values);
-__INT16_TYPE__ energyExtractionGate(std::vector<__INT16_TYPE__>* values, __INT16_TYPE__ threshold, __INT16_TYPE__ gateLength);
-#endif
+#pragma once
+
+void drawWaveform(const std::shared_ptr<std::vector<int16_t>> &values);
+void drawTwoWaveforms(const std::shared_ptr<std::vector<int16_t>> &values1, const std::shared_ptr<std::vector<int16_t>> &values2);
+std::shared_ptr<std::vector<int16_t>> subtractBackground(const std::shared_ptr<std::vector<int16_t>> &values, int16_t noise_samples);
+std::shared_ptr<std::vector<int16_t>> reverseWaveform(const std::shared_ptr<std::vector<int16_t>> &values);
+int16_t leadingEdgeDiscrimination(std::vector<int16_t> *values, int16_t threshold);
+int16_t energyExtractionMax(std::vector<int16_t> *values);
+int16_t energyExtractionGate(std::vector<int16_t> *values, int16_t threshold, int16_t gateLength);
