@@ -60,9 +60,8 @@ void drawTwoWaveforms(const std::shared_ptr<std::vector<int16_t>> &values1, cons
 
 std::shared_ptr<std::vector<int16_t>> subtractBackground(const std::shared_ptr<std::vector<int16_t>> &values, int16_t noise_samples)
 {
-
     std::shared_ptr<std::vector<int16_t>> result = std::make_shared<std::vector<int16_t>>();
-
+    result->reserve(values->size());
     int16_t meanBackground = (std::accumulate(values->begin(), values->begin() + noise_samples, 0)) / noise_samples;
     std::transform(values->begin(), values->end(),
                    std::back_inserter(*result), [meanBackground](int16_t element)
@@ -75,7 +74,7 @@ std::shared_ptr<std::vector<int16_t>> reverseWaveform(const std::shared_ptr<std:
 {
 
     std::shared_ptr<std::vector<int16_t>> result = std::make_shared<std::vector<int16_t>>();
-
+    result->reserve(values->size());
     std::transform(values->begin(), values->end(),
                    std::back_inserter(*result), [](int16_t element)
                    { return -element; });
@@ -87,6 +86,8 @@ int16_t leadingEdgeDiscrimination(const std::shared_ptr<std::vector<int16_t>> &v
 {
     std::vector<int16_t>::iterator it = std::find_if(values->begin(), values->end(), [threshold](int16_t element)
                                                      { return element > threshold; });
+    if (it == values->end())
+        return 0;
     return std::distance(values->begin(), it);
 }
 int16_t energyExtractionMax(const std::shared_ptr<std::vector<int16_t>> &values)
@@ -95,9 +96,17 @@ int16_t energyExtractionMax(const std::shared_ptr<std::vector<int16_t>> &values)
     return *max;
 }
 
-int16_t energyExtractionGate(const std::shared_ptr<std::vector<int16_t>> &values, int16_t threshold, int16_t gateLength)
+int16_t energyExtractionGate(const std::shared_ptr<std::vector<int16_t>> &values, int16_t threshold, int16_t gateLength, int16_t preGate)
 {
-    int16_t pulseBegin = leadingEdgeDiscrimination(values, threshold);
+    int16_t pulseBegin;
+    if (leadingEdgeDiscrimination(values, threshold) > preGate)
+    {
+        pulseBegin = leadingEdgeDiscrimination(values, threshold) - preGate;
+    }
+    else
+    {
+        pulseBegin = 0;
+    }
     int16_t pulseEnd = pulseBegin + gateLength;
     return std::accumulate(values->begin() + pulseBegin, values->end() + pulseEnd, 0) / gateLength;
 }
