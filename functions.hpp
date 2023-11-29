@@ -13,12 +13,13 @@ public:
     uint8_t board;
     uint8_t channel;
     uint16_t energy;
-    vector<int16_t> waveform;
+    shared_ptr<vector<int16_t>> waveform; // asume you create a shared ptr in the reading function
+    Event(uint8_t board, uint8_t channel, uint16_t energy, shared_ptr<vector<int16_t>> waveform);
 };
 
-shared_ptr<vector<Event>> readEvents(string fileName);
+shared_ptr<vector<Event>> readEvents(string fileName, string configFileName);
 
-void drawWaveform(const shared_ptr<vector<int16_t>> &values, uint8_t board, uint8_t channel, int index);
+void drawWaveform(const shared_ptr<vector<int16_t>> &values, uint8_t board, uint8_t channel);
 void drawTwoWaveforms(const shared_ptr<vector<int16_t>> &values1, const shared_ptr<vector<int16_t>> &values2);
 void drawHistogram(const shared_ptr<vector<int16_t>> energies, uint8_t board, uint8_t channel);
 void drawHistogram(const shared_ptr<map<pair<uint8_t, uint8_t>, shared_ptr<vector<int16_t>>>> &energyMap);

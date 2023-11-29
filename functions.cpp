@@ -20,14 +20,16 @@
 using namespace std;
 using json = nlohmann::json;
 
-shared_ptr<vector<Event>> readEvents(string fileName, string config)
-{
-    shared_ptr<vector<Event>> EventsPtr = make_shared<vector<Event>>();
+Event::Event(uint8_t board, uint8_t channel, uint16_t energy, shared_ptr<vector<int16_t>> waveform) : board(channel), channel(channel), energy(energy), waveform(waveform) {}
 
-    ifstream jsonConfigFile("config.json");
+shared_ptr<vector<Event>> readEvents(string fileName, string configFileName)
+{
+    shared_ptr<vector<Event>> eventsPtr = make_shared<vector<Event>>();
+
+    ifstream jsonConfigFile(configFileName);
     json jsonConfig;
     jsonConfigFile >> jsonConfig;
-    auto counts = jsonConfig["detectors"].get<vector<vector<int>>>();
+    std::vector<std::vector<int>> counts = jsonConfig["detectors"].get<vector<vector<int>>>();
 
     int fd = open(fileName.c_str(), O_RDONLY);
 
@@ -48,10 +50,26 @@ shared_ptr<vector<Event>> readEvents(string fileName, string config)
             // // Access event fields and extract necessary waveforms
             uint8_t board = event.getBoard();
             uint8_t channel = event.getChannel();
+
             // Check if there are any other waveforms to store and store them
+            if (counts[board][channel])
+            {
+                // Read the data for the event of interest
+
+                uint16_t energy = event.getEnergy();
+                auto waveformReader = event.getWaveform1();
+
+                shared_ptr<vector<int16_t>> waveform = make_shared<vector<int16_t>>();
+                for (const int16_t &value : waveformReader)
+                {
+                    waveform->push_back(value);
+                }
+                Event eventObject = Event(board, channel, energy, waveform);
+                eventsPtr->push_back(eventObject);
+            }
         }
     }
-    return EventsPtr;
+    return eventsPtr;
 }
 
 shared_ptr<vector<int16_t>> subtractBackground(const shared_ptr<vector<int16_t>> &values, int16_t noiseSamples)
@@ -116,10 +134,10 @@ int16_t energyExtractionGate(const shared_ptr<vector<int16_t>> &values, int16_t 
     return accumulate(values->begin() + pulseBegin, values->end() + pulseEnd, 0) / gateLength;
 }
 
-void drawWaveform(const shared_ptr<vector<int16_t>> &values, uint8_t board, uint8_t channel, int index)
+void drawWaveform(const shared_ptr<vector<int16_t>> &values, uint8_t board, uint8_t channel)
 {
     TGraph *graph = new TGraph(values->size());
-    graph->SetTitle(Form("Board %d Channel %d Index %d", board, channel, index));
+    graph->SetTitle(Form("Board %d Channel %d", board, channel));
     for (int pointIndex = 0; pointIndex < values->size(); pointIndex++)
     {
         graph->SetPoint(pointIndex, pointIndex, (*values)[pointIndex]);
