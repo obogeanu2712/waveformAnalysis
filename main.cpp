@@ -20,6 +20,13 @@
 #include <memory>
 using json = nlohmann::json;
 using namespace std;
+
+// using waveform_t = vector<int16_t>;
+// using energies_t = vector<int16_t>;
+// using pair_t = pair<uint8_t, uint8_t>;
+// using waveformsMap_t = map<pair<uint8_t, uint8_t>, shared_ptr<vector<shared_ptr<vector<int16_t>>>>>;
+// using energyMap_t = map<pair<uint8_t, uint8_t>, shared_ptr<vector<int16_t>>>;
+
 int main(int argc, char **argv)
 {
 
@@ -42,7 +49,8 @@ int main(int argc, char **argv)
 
     // Read the .cap file
 
-    shared_ptr<waveformsMap_t> waveforms = make_shared<waveformsMap_t>(); // map to store waveforms with board / channel key
+    shared_ptr<map<pair<uint8_t, uint8_t>, shared_ptr<vector<shared_ptr<vector<int16_t>>>>>> waveforms =
+        make_shared<map<pair<uint8_t, uint8_t>, shared_ptr<vector<shared_ptr<vector<int16_t>>>>>>(); // map to store waveforms with board / channel key
 
     while (bufferedStream.tryGetReadBuffer() != nullptr)
     {
@@ -62,14 +70,14 @@ int main(int argc, char **argv)
 
             if (!(*waveforms)[BoardChannelKey])
             {
-                (*waveforms)[BoardChannelKey] = make_shared<vector<shared_ptr<waveform_t>>>();
+                (*waveforms)[BoardChannelKey] = make_shared<vector<shared_ptr<vector<int16_t>>>>();
             }
             // Check if there are any other waveforms to store and store them
             if (counts[board][channel])
             {
                 auto waveformList = event.getWaveform1();
 
-                shared_ptr<waveform_t> waveform = make_shared<waveform_t>();
+                shared_ptr<vector<int16_t>> waveform = make_shared<vector<int16_t>>();
                 for (const int16_t &value : waveformList)
                 {
                     waveform->push_back(value);
@@ -97,7 +105,7 @@ int main(int argc, char **argv)
     // }
 
     // Create energy map
-    subtractBackground(waveforms, noiseSamples);
+    // subtractBackground(waveforms, noiseSamples);
     // shared_ptr<energyMap_t> energies = energyExtractionMax(waveforms);
     // Draw energy histogram
     // drawHistogram(energies);
