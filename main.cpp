@@ -1,5 +1,7 @@
 #include <vector>
 #include <TApplication.h>
+#include <TText.h>
+#include <TCanvas.h>
 #include <string>
 #include "functions.hpp" //my header
 #include <memory>
@@ -16,6 +18,8 @@ int main(int argc, char **argv)
 
     for (const Event &event : *Events)
     {
-        drawWaveform(event.waveform, event.board, event.channel);
+        drawEvent(event);
     }
+
+    app.Run();
 }

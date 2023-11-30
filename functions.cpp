@@ -6,7 +6,7 @@
 #include <TGraph.h>
 #include <TCanvas.h>
 #include <TString.h>
-#include <TText.h>
+#include <TLatex.h>
 #include <TLine.h>
 #include <TH1I.h>
 #include <numeric>
@@ -133,20 +133,15 @@ int16_t energyExtractionGate(const shared_ptr<vector<int16_t>> &values, int16_t 
     return accumulate(values->begin() + pulseBegin, values->end() + pulseEnd, 0) / gateLength;
 }
 
-void drawWaveform(const shared_ptr<vector<int16_t>> &values, uint8_t board, uint8_t channel)
+shared_ptr<TGraph> drawWaveform(const shared_ptr<vector<int16_t>> &values, uint8_t board, uint8_t channel)
 {
-    TGraph *graph = new TGraph(values->size());
+    shared_ptr<TGraph> graph(new TGraph(values->size()));
     graph->SetTitle(Form("Board %d Channel %d", board, channel));
     for (int pointIndex = 0; pointIndex < values->size(); pointIndex++)
     {
         graph->SetPoint(pointIndex, pointIndex, (*values)[pointIndex]);
     }
-
-    graph->Draw("APL");
-    gPad->Update();
-    gPad->WaitPrimitive("ggg");
-
-    delete graph;
+    return graph;
 }
 
 void drawTwoWaveforms(const shared_ptr<vector<int16_t>> &values1, const shared_ptr<vector<int16_t>> &values2)
@@ -184,4 +179,16 @@ void drawHistogram(const shared_ptr<vector<int16_t>> energies, uint8_t board, ui
     histogram->Draw();
     gPad->Update();
     gPad->WaitPrimitive("ggg");
+}
+
+void drawEvent(const Event &event)
+{
+
+    shared_ptr<TGraph> graph = drawWaveform(event.waveform, event.board, event.channel);
+    shared_ptr<TLatex> text(new TLatex(0.5, 0.5, "Text"));
+    graph->Draw();
+    text->Draw();
+    gPad->Update();
+    gPad->WaitPrimitive("ggg");
+    gPad->Clear();
 }

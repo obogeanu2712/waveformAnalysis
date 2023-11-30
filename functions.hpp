@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <memory>
 #include <map>
+#include <TGraph.h>
 
 using namespace std;
 
@@ -19,10 +20,13 @@ public:
 
 shared_ptr<vector<Event>> readEvents(string fileName, string configFileName);
 
-void drawWaveform(const shared_ptr<vector<int16_t>> &values, uint8_t board, uint8_t channel);
+void drawEvent(const Event &event);
+
+shared_ptr<TGraph> drawWaveform(const shared_ptr<vector<int16_t>> &values, uint8_t board, uint8_t channel);
+
 void drawTwoWaveforms(const shared_ptr<vector<int16_t>> &values1, const shared_ptr<vector<int16_t>> &values2);
+
 void drawHistogram(const shared_ptr<vector<int16_t>> energies, uint8_t board, uint8_t channel);
-void drawHistogram(const shared_ptr<map<pair<uint8_t, uint8_t>, shared_ptr<vector<int16_t>>>> &energyMap);
 
 shared_ptr<vector<int16_t>> subtractBackground(const shared_ptr<vector<int16_t>> &values, int16_t noiseSamples);
 
