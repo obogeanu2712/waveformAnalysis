@@ -94,5 +94,6 @@
     ],
     "noiseSamples": 500,
     "threshold": 20,
-    "gateLength": 100
+    "gateLength": 100,
+    "preGate": 20
 }

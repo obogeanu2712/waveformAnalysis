@@ -19,7 +19,7 @@
 using namespace std;
 using json = nlohmann::json;
 
-Event::Event(uint8_t board, uint8_t channel, uint16_t energy, shared_ptr<vector<int16_t>> waveform) : board(channel), channel(channel), energy(energy), waveform(waveform) {}
+Event::Event(uint8_t board, uint8_t channel, uint16_t energy, shared_ptr<vector<int16_t>> waveform) : board(channel), channel(channel), fileEnergy(energy), waveform(waveform) {}
 
 shared_ptr<vector<Event>> readEvents(string fileName, string configFileName)
 {
@@ -134,6 +134,31 @@ int16_t energyExtractionGate(const shared_ptr<vector<int16_t>> &values, int16_t 
     return accumulate(values->begin() + pulseBegin, values->begin() + pulseEnd, 0) / gateLength;
 }
 
+shared_ptr<vector<Event>> processEvents(const shared_ptr<vector<Event>> &rawEvents, string configFileName)
+{
+
+    ifstream jsonConfigFile(configFileName);
+    json jsonConfig;
+    jsonConfigFile >> jsonConfig;
+
+    int16_t noiseSamples = jsonConfig["noiseSamples"];
+    int16_t threshold = jsonConfig["threshold"];
+    int16_t gateLength = jsonConfig["gateLength"];
+    int16_t preGate = jsonConfig["preGate"];
+
+    shared_ptr<vector<Event>> processedEvents = make_shared<vector<Event>>();
+    processedEvents->reserve(rawEvents->size());
+    transform(rawEvents->begin(), rawEvents->end(), back_inserter(*processedEvents),
+              [noiseSamples, threshold, gateLength, preGate](const Event &event)
+              { 
+        Event processedEvent(event);
+        processedEvent.waveform = reverseWaveform(subtractBackground(processedEvent.waveform, noiseSamples));
+        processedEvent.energyMax = energyExtractionMax(processedEvent.waveform);
+        processedEvent.energyGate = energyExtractionGate(processedEvent.waveform, threshold, gateLength, preGate);
+        return processedEvent; });
+    return processedEvents;
+}
+
 shared_ptr<TGraph> drawWaveform(const shared_ptr<vector<int16_t>> &values, uint8_t board, uint8_t channel)
 {
     shared_ptr<TGraph> graph(new TGraph(values->size()));
@@ -187,7 +212,7 @@ void drawEvent(const Event &event)
 
     shared_ptr<TGraph> graph = drawWaveform(event.waveform, event.board, event.channel);
     graph->Draw();
-    shared_ptr<TText> text(new TText(0.7, 0.7, Form("File Energy : %d\n", event.energy)));
+    shared_ptr<TText> text(new TText(0.7, 0.7, Form("File Energy : %d\n", event.fileEnergy)));
     text->SetNDC();
 
     text->Draw();
