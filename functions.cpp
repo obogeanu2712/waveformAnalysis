@@ -103,34 +103,35 @@ int16_t leadingEdgeDiscrimination(const shared_ptr<vector<int16_t>> &values, int
         return 0;
     return distance(values->begin(), it);
 }
+
 int16_t energyExtractionMax(const shared_ptr<vector<int16_t>> &values)
 { // implemented for positive signals with extracted baseline
     vector<int16_t>::iterator max = max_element(values->begin(), values->end());
     return *max;
 }
 
-shared_ptr<vector<int16_t>> energyExtractionMax(const shared_ptr<vector<shared_ptr<vector<int16_t>>>> &waveforms)
-{
-    shared_ptr<vector<int16_t>> energies = make_shared<vector<int16_t>>();
-    for (vector<shared_ptr<vector<int16_t>>>::iterator it = waveforms->begin(); it != waveforms->end(); it++)
-    {
-        energies->push_back(energyExtractionMax(*it));
-    }
-    return energies;
-}
 int16_t energyExtractionGate(const shared_ptr<vector<int16_t>> &values, int16_t threshold, int16_t gateLength, int16_t preGate)
 {
-    int16_t pulseBegin;
-    if (leadingEdgeDiscrimination(values, threshold) > preGate)
+
+    int16_t pulseBegin, pulseEnd;
+    int16_t leadingEdge = leadingEdgeDiscrimination(values, threshold);
+    if (leadingEdge > preGate)
     {
-        pulseBegin = leadingEdgeDiscrimination(values, threshold) - preGate;
+        pulseBegin = leadingEdge - preGate;
     }
     else
     {
         pulseBegin = 0;
     }
-    int16_t pulseEnd = pulseBegin + gateLength;
-    return accumulate(values->begin() + pulseBegin, values->end() + pulseEnd, 0) / gateLength;
+    if (pulseBegin + gateLength < values->size())
+    {
+        pulseEnd = pulseBegin + gateLength;
+    }
+    else
+    {
+        pulseEnd = values->size() - 1;
+    }
+    return accumulate(values->begin() + pulseBegin, values->begin() + pulseEnd, 0) / gateLength;
 }
 
 shared_ptr<TGraph> drawWaveform(const shared_ptr<vector<int16_t>> &values, uint8_t board, uint8_t channel)
@@ -185,8 +186,10 @@ void drawEvent(const Event &event)
 {
 
     shared_ptr<TGraph> graph = drawWaveform(event.waveform, event.board, event.channel);
-    shared_ptr<TLatex> text(new TLatex(0.5, 0.5, "Text"));
     graph->Draw();
+    shared_ptr<TText> text(new TText(0.7, 0.7, Form("File Energy : %d\n", event.energy)));
+    text->SetNDC();
+
     text->Draw();
     gPad->Update();
     gPad->WaitPrimitive("ggg");
