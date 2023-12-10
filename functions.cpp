@@ -209,13 +209,21 @@ void drawHistogram(const shared_ptr<vector<int16_t>> energies, uint8_t board, ui
 
 void drawEvent(const Event &event)
 {
-
     shared_ptr<TGraph> graph = drawWaveform(event.waveform, event.board, event.channel);
     graph->Draw();
-    shared_ptr<TText> text(new TText(0.7, 0.7, Form("File Energy : %d\nGate Energy %d\nMax Energy %d\n", event.fileEnergy, event.energyGate, event.energyMax)));
+    // Use "\n" to represent line breaks in the text
+    shared_ptr<TText> text(new TText(0.7, 0.7, Form("File Energy: %d", event.fileEnergy)));
     text->SetNDC();
-
     text->Draw();
+
+    shared_ptr<TText> text1(new TText(0.7, 0.65, Form("Max Energy: %d", event.energyMax)));
+    text1->SetNDC();
+    text1->Draw();
+
+    shared_ptr<TText> text2(new TText(0.7, 0.6, Form("Gate Energy: %d", event.energyGate)));
+    text2->SetNDC();
+    text2->Draw();
+
     gPad->Update();
     gPad->WaitPrimitive("ggg");
     gPad->Clear();
