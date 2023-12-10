@@ -212,7 +212,7 @@ void drawEvent(const Event &event)
 
     shared_ptr<TGraph> graph = drawWaveform(event.waveform, event.board, event.channel);
     graph->Draw();
-    shared_ptr<TText> text(new TText(0.7, 0.7, Form("File Energy : %d\n", event.fileEnergy)));
+    shared_ptr<TText> text(new TText(0.7, 0.7, Form("File Energy : %d\nGate Energy %d\nMax Energy %d\n", event.fileEnergy, event.energyGate, event.energyMax)));
     text->SetNDC();
 
     text->Draw();

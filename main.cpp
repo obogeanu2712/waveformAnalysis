@@ -14,9 +14,13 @@ int main(int argc, char **argv)
 
     TApplication app("Display waveforms", &argc, argv);
 
+    // Process Events
+
+    shared_ptr<vector<Event>> processedEvents = processEvents(Events, "config.json");
+
     // Display waveforms in TApp
 
-    for (const Event &event : *Events)
+    for (const Event &event : *processedEvents)
     {
         drawEvent(event);
     }
