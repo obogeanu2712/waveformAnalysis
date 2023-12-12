@@ -13,14 +13,16 @@ class Event
 public:
     uint8_t board;
     uint8_t channel;
+    int16_t thresholdIndex;
     uint16_t fileEnergy;
     int16_t energyMax;
     int16_t energyGate;
     shared_ptr<vector<int16_t>> waveform; // asume you create a shared ptr in the reading function
+    bool saturated;
     Event(uint8_t board, uint8_t channel, uint16_t energy, shared_ptr<vector<int16_t>> waveform);
 };
 
-shared_ptr<vector<Event>> readEvents(string fileName, string configFileName);
+shared_ptr<vector<Event>> readEvents(string configFileName);
 
 void drawEvent(const Event &event);
 
@@ -35,6 +37,8 @@ shared_ptr<vector<int16_t>> subtractBackground(const shared_ptr<vector<int16_t>>
 shared_ptr<vector<int16_t>> reverseWaveform(const shared_ptr<vector<int16_t>> &values);
 
 int16_t leadingEdgeDiscrimination(const shared_ptr<vector<int16_t>> &values, int16_t threshold);
+
+bool saturated(const shared_ptr<vector<int16_t>> &values, int16_t gate);
 
 int16_t energyExtractionMax(const shared_ptr<vector<int16_t>> &values);
 

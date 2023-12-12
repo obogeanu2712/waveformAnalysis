@@ -21,14 +21,15 @@ using json = nlohmann::json;
 
 Event::Event(uint8_t board, uint8_t channel, uint16_t energy, shared_ptr<vector<int16_t>> waveform) : board(channel), channel(channel), fileEnergy(energy), waveform(waveform) {}
 
-shared_ptr<vector<Event>> readEvents(string fileName, string configFileName)
+shared_ptr<vector<Event>> readEvents(string configFileName)
 {
     shared_ptr<vector<Event>> eventsPtr = make_shared<vector<Event>>();
 
     ifstream jsonConfigFile(configFileName);
     json jsonConfig;
     jsonConfigFile >> jsonConfig;
-    std::vector<std::vector<int>> counts = jsonConfig["detectors"].get<vector<vector<int>>>();
+    string fileName = jsonConfig["fileName"];
+    vector<vector<int>> counts = jsonConfig["detectors"].get<vector<vector<int>>>();
 
     int fd = open(fileName.c_str(), O_RDONLY);
 
@@ -104,6 +105,15 @@ int16_t leadingEdgeDiscrimination(const shared_ptr<vector<int16_t>> &values, int
     return distance(values->begin(), it);
 }
 
+bool saturated(const shared_ptr<vector<int16_t>> &values, int16_t gate)
+{
+    vector<int16_t>::iterator max = max_element(values->begin(), values->end());
+    vector<int16_t>::iterator it = find_if(max, max + gate, [max](int16_t element)
+                                           { return (element != *max); });
+
+    return it == max + gate;
+}
+
 int16_t energyExtractionMax(const shared_ptr<vector<int16_t>> &values)
 { // implemented for positive signals with extracted baseline
     vector<int16_t>::iterator max = max_element(values->begin(), values->end());
@@ -145,16 +155,19 @@ shared_ptr<vector<Event>> processEvents(const shared_ptr<vector<Event>> &rawEven
     int16_t threshold = jsonConfig["threshold"];
     int16_t gateLength = jsonConfig["gateLength"];
     int16_t preGate = jsonConfig["preGate"];
+    int16_t saturationGate = jsonConfig["saturationGate"];
 
     shared_ptr<vector<Event>> processedEvents = make_shared<vector<Event>>();
     processedEvents->reserve(rawEvents->size());
     transform(rawEvents->begin(), rawEvents->end(), back_inserter(*processedEvents),
-              [noiseSamples, threshold, gateLength, preGate](const Event &event)
+              [noiseSamples, threshold, gateLength, preGate, saturationGate](const Event &event)
               { 
         Event processedEvent(event);
         processedEvent.waveform = reverseWaveform(subtractBackground(processedEvent.waveform, noiseSamples));
         processedEvent.energyMax = energyExtractionMax(processedEvent.waveform);
         processedEvent.energyGate = energyExtractionGate(processedEvent.waveform, threshold, gateLength, preGate);
+        processedEvent.saturated = saturated(processedEvent.waveform, saturationGate);
+        processedEvent.thresholdIndex = leadingEdgeDiscrimination(processedEvent.waveform, threshold);
         return processedEvent; });
     return processedEvents;
 }
@@ -210,8 +223,19 @@ void drawHistogram(const shared_ptr<vector<int16_t>> energies, uint8_t board, ui
 void drawEvent(const Event &event)
 {
     shared_ptr<TGraph> graph = drawWaveform(event.waveform, event.board, event.channel);
-    graph->Draw();
-    // Use "\n" to represent line breaks in the text
+    graph->Draw("APL");
+
+    int16_t thresholdX = event.thresholdIndex;
+    int16_t thresholdY = (*(event.waveform))[event.thresholdIndex];
+
+    shared_ptr<TLine> verticalLine(new TLine(thresholdX, graph->GetYaxis()->GetXmin(), thresholdX, graph->GetYaxis()->GetXmax()));
+    shared_ptr<TLine> horizontalLine(new TLine(graph->GetXaxis()->GetXmin(), thresholdY, graph->GetXaxis()->GetXmax(), thresholdY));
+
+    verticalLine->SetLineStyle(2);
+    verticalLine->Draw();
+    horizontalLine->SetLineStyle(2);
+    horizontalLine->Draw();
+
     shared_ptr<TText> text(new TText(0.7, 0.7, Form("File Energy: %d", event.fileEnergy)));
     text->SetNDC();
     text->Draw();
@@ -223,6 +247,11 @@ void drawEvent(const Event &event)
     shared_ptr<TText> text2(new TText(0.7, 0.6, Form("Gate Energy: %d", event.energyGate)));
     text2->SetNDC();
     text2->Draw();
+
+    shared_ptr<TText> text3(new TText(0.7, 0.55, "Saturated"));
+    text3->SetNDC();
+    if (event.saturated)
+        text3->Draw();
 
     gPad->Update();
     gPad->WaitPrimitive("ggg");

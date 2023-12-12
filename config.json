@@ -95,5 +95,6 @@
     "noiseSamples": 500,
     "threshold": 20,
     "gateLength": 100,
-    "preGate": 20
+    "preGate": 20,
+    "saturationGate": 5
 }
