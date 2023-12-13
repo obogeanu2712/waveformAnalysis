@@ -114,6 +114,14 @@ bool saturated(const shared_ptr<vector<int16_t>> &values, int16_t gate)
     return it == max + gate;
 }
 
+bool pileup(const shared_ptr<int16_t> &values, float threshold, int16_t distance)
+{
+    vector<int16_t>::iterator max = max_element(values->begin(), values->end());
+    vector<int16_t>::iterator secondPulse(max + distance, values->end(), [threshold](int16_t element)
+                                          { return element > *max * threshold; });
+    return secondPulse != values->end();
+}
+
 int16_t energyExtractionMax(const shared_ptr<vector<int16_t>> &values)
 { // implemented for positive signals with extracted baseline
     vector<int16_t>::iterator max = max_element(values->begin(), values->end());
@@ -224,12 +232,6 @@ void drawEvent(const Event &event)
 {
     shared_ptr<TGraph> graph = drawWaveform(event.waveform, event.board, event.channel);
     graph->Draw("APL");
-
-    int16_t thresholdX = event.thresholdIndex;
-    int16_t thresholdY = (*(event.waveform))[event.thresholdIndex];
-
-    shared_ptr<TLine> verticalLine(new TLine(thresholdX, graph->GetYaxis()->GetXmin(), thresholdX, graph->GetYaxis()->GetXmax()));
-    shared_ptr<TLine> horizontalLine(new TLine(graph->GetXaxis()->GetXmin(), thresholdY, graph->GetXaxis()->GetXmax(), thresholdY));
 
     verticalLine->SetLineStyle(2);
     verticalLine->Draw();
