@@ -20,10 +20,6 @@ int main(int argc, char **argv)
     shared_ptr<vector<Event>> processedEvents = processEvents(Events, "config.json");
 
     // Display waveforms in TApp
-    for (const Event &event : *processedEvents)
-    {
-        drawEvent(event);
-    }
-
+    drawEvents(processedEvents, "config.json");
     app.Run();
 }

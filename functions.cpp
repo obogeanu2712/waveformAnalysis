@@ -114,7 +114,7 @@ bool saturated(const shared_ptr<vector<int16_t>> &values, int16_t gate)
     return it == max + gate;
 }
 
-bool pileup(const shared_ptr<vector<int16_t>> &values, float amplitudeFraction, int16_t threshold)
+bool pileup(const shared_ptr<vector<int16_t>> &values, float amplitudeFraction, int16_t threshold, int16_t gateLength)
 {
     vector<int16_t>::iterator aboveThreshold = find_if(values->begin(), values->end(), [threshold](int16_t element)
                                                        { return element > threshold; });
@@ -124,10 +124,21 @@ bool pileup(const shared_ptr<vector<int16_t>> &values, float amplitudeFraction, 
                                                        { return element < threshold; });
     if (underThreshold == values->end())
         return false;
+
     vector<int16_t>::iterator max = max_element(aboveThreshold, underThreshold);
-    vector<int16_t>::iterator secondPeak = find_if(underThreshold, values->end(), [amplitudeFraction, max](int16_t element)
+
+    vector<int16_t>::iterator gateEnd;
+
+    if (underThreshold + gateLength > values->end())
+        gateEnd = values->end();
+    else
+    {
+        gateEnd = underThreshold + gateLength;
+    }
+
+    vector<int16_t>::iterator secondPeak = find_if(underThreshold, gateEnd, [amplitudeFraction, max](int16_t element)
                                                    { return element > *max * amplitudeFraction; });
-    return secondPeak != values->end();
+    return secondPeak != gateEnd;
 }
 
 int16_t energyExtractionMax(const shared_ptr<vector<int16_t>> &values)
@@ -185,7 +196,7 @@ shared_ptr<vector<Event>> processEvents(const shared_ptr<vector<Event>> &rawEven
         processedEvent.energyGate = energyExtractionGate(processedEvent.waveform, threshold, gateLength, preGate);
         processedEvent.saturated = saturated(processedEvent.waveform, saturationGate);
         processedEvent.thresholdIndex = leadingEdgeDiscrimination(processedEvent.waveform, threshold);
-        processedEvent.pileup = pileup(processedEvent.waveform, amplitudeFraction, threshold);
+        processedEvent.pileup = pileup(processedEvent.waveform, amplitudeFraction, threshold, gateLength);
         return processedEvent; });
     return processedEvents;
 }
@@ -238,24 +249,26 @@ void drawHistogram(const shared_ptr<vector<int16_t>> energies, uint8_t board, ui
     gPad->WaitPrimitive("ggg");
 }
 
-void drawEvent(const Event &event)
+void drawEvent(const Event &event, const json &jsonConfig)
 {
     shared_ptr<TGraph> graph = drawWaveform(event.waveform, event.board, event.channel);
     graph->Draw("APL");
+
+    int16_t gateLength = jsonConfig["gateLength"];
 
     int16_t thresholdX = event.thresholdIndex;
     int16_t thresholdY = (*(event.waveform))[event.thresholdIndex];
 
     shared_ptr<TLine> verticalLine(new TLine(thresholdX, graph->GetYaxis()->GetXmin(), thresholdX, graph->GetYaxis()->GetXmax()));
     shared_ptr<TLine> horizontalLine(new TLine(graph->GetXaxis()->GetXmin(), thresholdY, graph->GetXaxis()->GetXmax(), thresholdY));
-
+    shared_ptr<TLine> gateVerticalLine(new TLine(thresholdX + gateLength, graph->GetYaxis()->GetXmin(), thresholdX + gateLength, graph->GetYaxis()->GetXmax()));
     verticalLine->SetLineStyle(2);
     verticalLine->Draw();
     horizontalLine->SetLineStyle(2);
     horizontalLine->Draw();
-
+    gateVerticalLine->SetLineStyle(2);
+    gateVerticalLine->Draw();
     float YTextCoordinate = 0.7;
-    // YTextCoordinate -= 0.05
     shared_ptr<TText> text(new TText(0.7, YTextCoordinate -= 0.05, Form("File Energy: %d", event.fileEnergy)));
     text->SetNDC();
     text->Draw();
@@ -289,4 +302,17 @@ void drawEvent(const Event &event)
     gPad->Update();
     gPad->WaitPrimitive("ggg");
     gPad->Clear();
+}
+
+void drawEvents(const shared_ptr<vector<Event>> &events, string configFileName)
+{
+
+    ifstream jsonFile(configFileName);
+    json jsonConfig;
+    jsonFile >> jsonConfig;
+
+    for (const Event &event : *events)
+    {
+        drawEvent(event, jsonConfig);
+    }
 }

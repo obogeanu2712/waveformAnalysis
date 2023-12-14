@@ -5,9 +5,10 @@
 #include <memory>
 #include <map>
 #include <TGraph.h>
+#include <nlohmann/json.hpp>
 
 using namespace std;
-
+using json = nlohmann::json;
 class Event
 {
 public:
@@ -25,7 +26,9 @@ public:
 
 shared_ptr<vector<Event>> readEvents(string configFileName);
 
-void drawEvent(const Event &event);
+void drawEvent(const Event &event, const json &jsonConfig);
+
+void drawEvents(const shared_ptr<vector<Event>> &events, string configFileName);
 
 shared_ptr<TGraph> drawWaveform(const shared_ptr<vector<int16_t>> &values, uint8_t board, uint8_t channel);
 
@@ -41,7 +44,7 @@ int16_t leadingEdgeDiscrimination(const shared_ptr<vector<int16_t>> &values, int
 
 bool saturated(const shared_ptr<vector<int16_t>> &values, int16_t gate);
 
-bool pileup(const shared_ptr<vector<int16_t>> &values, float amplitudeFraction, int16_t threshold);
+bool pileup(const shared_ptr<vector<int16_t>> &values, float amplitudeFraction, int16_t threshold, int16_t gateLength);
 
 int16_t energyExtractionMax(const shared_ptr<vector<int16_t>> &values);
 
