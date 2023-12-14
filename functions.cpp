@@ -114,12 +114,20 @@ bool saturated(const shared_ptr<vector<int16_t>> &values, int16_t gate)
     return it == max + gate;
 }
 
-bool pileup(const shared_ptr<int16_t> &values, float threshold, int16_t distance)
+bool pileup(const shared_ptr<vector<int16_t>> &values, float amplitudeFraction, int16_t threshold)
 {
-    vector<int16_t>::iterator max = max_element(values->begin(), values->end());
-    vector<int16_t>::iterator secondPulse(max + distance, values->end(), [threshold](int16_t element)
-                                          { return element > *max * threshold; });
-    return secondPulse != values->end();
+    vector<int16_t>::iterator aboveThreshold = find_if(values->begin(), values->end(), [threshold](int16_t element)
+                                                       { return element > threshold; });
+    if (aboveThreshold == values->end())
+        return false;
+    vector<int16_t>::iterator underThreshold = find_if(aboveThreshold, values->end(), [threshold](int16_t element)
+                                                       { return element < threshold; });
+    if (underThreshold == values->end())
+        return false;
+    vector<int16_t>::iterator max = max_element(aboveThreshold, underThreshold);
+    vector<int16_t>::iterator secondPeak = find_if(underThreshold, values->end(), [amplitudeFraction, max](int16_t element)
+                                                   { return element > *max * amplitudeFraction; });
+    return secondPeak != values->end();
 }
 
 int16_t energyExtractionMax(const shared_ptr<vector<int16_t>> &values)
@@ -164,11 +172,12 @@ shared_ptr<vector<Event>> processEvents(const shared_ptr<vector<Event>> &rawEven
     int16_t gateLength = jsonConfig["gateLength"];
     int16_t preGate = jsonConfig["preGate"];
     int16_t saturationGate = jsonConfig["saturationGate"];
+    float amplitudeFraction = jsonConfig["amplitudeFraction"];
 
     shared_ptr<vector<Event>> processedEvents = make_shared<vector<Event>>();
     processedEvents->reserve(rawEvents->size());
     transform(rawEvents->begin(), rawEvents->end(), back_inserter(*processedEvents),
-              [noiseSamples, threshold, gateLength, preGate, saturationGate](const Event &event)
+              [noiseSamples, threshold, gateLength, preGate, saturationGate, amplitudeFraction](const Event &event)
               { 
         Event processedEvent(event);
         processedEvent.waveform = reverseWaveform(subtractBackground(processedEvent.waveform, noiseSamples));
@@ -176,6 +185,7 @@ shared_ptr<vector<Event>> processEvents(const shared_ptr<vector<Event>> &rawEven
         processedEvent.energyGate = energyExtractionGate(processedEvent.waveform, threshold, gateLength, preGate);
         processedEvent.saturated = saturated(processedEvent.waveform, saturationGate);
         processedEvent.thresholdIndex = leadingEdgeDiscrimination(processedEvent.waveform, threshold);
+        processedEvent.pileup = pileup(processedEvent.waveform, amplitudeFraction, threshold);
         return processedEvent; });
     return processedEvents;
 }
@@ -233,27 +243,48 @@ void drawEvent(const Event &event)
     shared_ptr<TGraph> graph = drawWaveform(event.waveform, event.board, event.channel);
     graph->Draw("APL");
 
+    int16_t thresholdX = event.thresholdIndex;
+    int16_t thresholdY = (*(event.waveform))[event.thresholdIndex];
+
+    shared_ptr<TLine> verticalLine(new TLine(thresholdX, graph->GetYaxis()->GetXmin(), thresholdX, graph->GetYaxis()->GetXmax()));
+    shared_ptr<TLine> horizontalLine(new TLine(graph->GetXaxis()->GetXmin(), thresholdY, graph->GetXaxis()->GetXmax(), thresholdY));
+
     verticalLine->SetLineStyle(2);
     verticalLine->Draw();
     horizontalLine->SetLineStyle(2);
     horizontalLine->Draw();
 
-    shared_ptr<TText> text(new TText(0.7, 0.7, Form("File Energy: %d", event.fileEnergy)));
+    float YTextCoordinate = 0.7;
+    // YTextCoordinate -= 0.05
+    shared_ptr<TText> text(new TText(0.7, YTextCoordinate -= 0.05, Form("File Energy: %d", event.fileEnergy)));
     text->SetNDC();
     text->Draw();
 
-    shared_ptr<TText> text1(new TText(0.7, 0.65, Form("Max Energy: %d", event.energyMax)));
+    shared_ptr<TText> text1(new TText(0.7, YTextCoordinate -= 0.05, Form("Max Energy: %d", event.energyMax)));
     text1->SetNDC();
     text1->Draw();
 
-    shared_ptr<TText> text2(new TText(0.7, 0.6, Form("Gate Energy: %d", event.energyGate)));
+    shared_ptr<TText> text2(new TText(0.7, YTextCoordinate -= 0.05, Form("Gate Energy: %d", event.energyGate)));
     text2->SetNDC();
     text2->Draw();
 
-    shared_ptr<TText> text3(new TText(0.7, 0.55, "Saturated"));
-    text3->SetNDC();
+    shared_ptr<TText> text3;
+
     if (event.saturated)
+    {
+        text3 = make_shared<TText>(0.7, YTextCoordinate -= 0.05, "Saturated");
+        text3->SetNDC();
         text3->Draw();
+    }
+
+    shared_ptr<TText> text4;
+
+    if (event.pileup)
+    {
+        text4 = make_shared<TText>(0.7, YTextCoordinate -= 0.05, "Pile up");
+        text4->SetNDC();
+        text4->Draw();
+    }
 
     gPad->Update();
     gPad->WaitPrimitive("ggg");

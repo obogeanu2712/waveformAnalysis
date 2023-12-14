@@ -96,5 +96,6 @@
     "threshold": 20,
     "gateLength": 100,
     "preGate": 20,
-    "saturationGate": 5
+    "saturationGate": 3,
+    "amplitudeFraction": 0.1
 }

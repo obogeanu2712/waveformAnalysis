@@ -19,6 +19,7 @@ public:
     int16_t energyGate;
     shared_ptr<vector<int16_t>> waveform; // asume you create a shared ptr in the reading function
     bool saturated;
+    bool pileup;
     Event(uint8_t board, uint8_t channel, uint16_t energy, shared_ptr<vector<int16_t>> waveform);
 };
 
@@ -39,6 +40,8 @@ shared_ptr<vector<int16_t>> reverseWaveform(const shared_ptr<vector<int16_t>> &v
 int16_t leadingEdgeDiscrimination(const shared_ptr<vector<int16_t>> &values, int16_t threshold);
 
 bool saturated(const shared_ptr<vector<int16_t>> &values, int16_t gate);
+
+bool pileup(const shared_ptr<vector<int16_t>> &values, float amplitudeFraction, int16_t threshold);
 
 int16_t energyExtractionMax(const shared_ptr<vector<int16_t>> &values);
 
