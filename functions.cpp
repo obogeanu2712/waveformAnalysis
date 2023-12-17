@@ -10,7 +10,9 @@
 #include <TLine.h>
 #include <TH1I.h>
 #include <numeric>
+#include <cmath>
 #include <algorithm>
+#include <functional>
 #include <memory>
 #include <map>
 #include <fcntl.h>
@@ -99,10 +101,27 @@ shared_ptr<vector<int16_t>> reverseWaveform(const shared_ptr<vector<int16_t>> &v
 int16_t leadingEdgeDiscrimination(const shared_ptr<vector<int16_t>> &values, int16_t threshold)
 {
     vector<int16_t>::iterator it = find_if(values->begin(), values->end(), [threshold](int16_t element)
-                                           { return element > threshold; });
+                                           { return abs(element) > threshold; });
     if (it == values->end())
         return 0;
     return distance(values->begin(), it);
+}
+
+int16_t CFD(const shared_ptr<vector<int16_t>> &values, float attenuation, int16_t delay)
+{
+    shared_ptr<vector<int16_t>> signal1 = make_shared<vector<int16_t>>(*values);
+    shared_ptr<vector<int16_t>> signal2 = make_shared<vector<int16_t>>(*values);
+    shared_ptr<vector<int16_t>> sum = make_shared<vector<int16_t>>();
+    sum->reserve(values->size());
+    // signal 2 attenuation and reverse
+    transform(signal2->begin(), signal2->end(), signal2->begin(), [attenuation](int16_t element)
+              { return (-1) * static_cast<int16_t>(attenuation * element); });
+    // signal 1 delay
+    rotate(signal2->rbegin(), signal2->rbegin() + delay, signal2->rend());
+
+    // sum the 2 signals
+
+    transform(signal1->begin(), signal1->end(), signal2->begin(), sum->begin(), plus<int16_t>());
 }
 
 bool saturated(const shared_ptr<vector<int16_t>> &values, int16_t gate)
@@ -169,6 +188,15 @@ int16_t energyExtractionGate(const shared_ptr<vector<int16_t>> &values, int16_t 
         pulseEnd = values->size() - 1;
     }
     return accumulate(values->begin() + pulseBegin, values->begin() + pulseEnd, 0) / gateLength;
+}
+
+pair<int16_t, bool> EnergyGatePileup(const shared_ptr<vector<int16_t>> &values, int16_t threshold, int16_t gateLength, int16_t preGate, float amplitudeFraction)
+{
+    pair<int16_t, bool> result;
+    result.first = energyExtractionGate(values, threshold, gateLength, preGate);
+    result.second = pileup(values, amplitudeFraction, threshold, gateLength);
+    // i could choose not to store the energy if i detect pileup
+    return result;
 }
 
 shared_ptr<vector<Event>> processEvents(const shared_ptr<vector<Event>> &rawEvents, string configFileName)

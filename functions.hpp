@@ -42,6 +42,8 @@ shared_ptr<vector<int16_t>> reverseWaveform(const shared_ptr<vector<int16_t>> &v
 
 int16_t leadingEdgeDiscrimination(const shared_ptr<vector<int16_t>> &values, int16_t threshold);
 
+int16_t CFD(const shared_ptr<vector<int16_t>> &values, float attenuation, int16_t delay);
+
 bool saturated(const shared_ptr<vector<int16_t>> &values, int16_t gate);
 
 bool pileup(const shared_ptr<vector<int16_t>> &values, float amplitudeFraction, int16_t threshold, int16_t gateLength);
@@ -49,5 +51,7 @@ bool pileup(const shared_ptr<vector<int16_t>> &values, float amplitudeFraction, 
 int16_t energyExtractionMax(const shared_ptr<vector<int16_t>> &values);
 
 int16_t energyExtractionGate(const shared_ptr<vector<int16_t>> &values, int16_t threshold, int16_t gateLength, int16_t preGate);
+
+pair<int16_t, bool> EnergyGatePileup(const shared_ptr<vector<int16_t>> &values, int16_t threshold, int16_t gateLength, int16_t preGate, float amplitudeFraction);
 
 shared_ptr<vector<Event>> processEvents(const shared_ptr<vector<Event>> &rawEvents, string configFileName);
