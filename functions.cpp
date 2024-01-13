@@ -17,6 +17,8 @@
 #include <map>
 #include <fcntl.h>
 #include <fstream>
+#include <random>
+#include <cstdint>
 
 using namespace std;
 using json = nlohmann::json;
@@ -113,15 +115,44 @@ int16_t CFD(const shared_ptr<vector<int16_t>> &values, float attenuation, int16_
     shared_ptr<vector<int16_t>> signal2 = make_shared<vector<int16_t>>(*values);
     shared_ptr<vector<int16_t>> sum = make_shared<vector<int16_t>>();
     sum->reserve(values->size());
+    // mean on delay
+
+    Double_t mean1 = static_cast<Double_t>(accumulate(signal1->begin(), signal1->begin() + delay, 0)) / signal1->size();
+
+    // standard deviation on delay
+    Double_t stdDeviation1 = sqrt(accumulate(signal1->begin(), signal1->begin() + delay, 0, 
+        [mean1](Double_t acc, int16_t x){
+            return acc + (x - mean1)*(x - mean1);
+    }) / delay);
+
+    // normal distribution instance
+
+    normal_distribution<Double_t> distribution1(mean1, stdDeviation1);
+
+    //rotate vector with 'delay' samples
+
+    rotate(signal1->rbegin(), signal1->rbegin() + delay, signal1->rend());
+
+    //populate shifted samples with the normal distribution
+
+    random_device rd;
+
+    default_random_engine generator(rd());
+
+    //generate random values
+
+    transform(signal1->begin(), signal1->begin() + delay, signal1->begin(), 
+        [&distribution1, &generator](int16_t){
+            return static_cast<int16_t>(distribution1(generator));  
+        });
+
+
     // signal 2 attenuation and reverse
     transform(signal2->begin(), signal2->end(), signal2->begin(), [attenuation](int16_t element)
               { return (-1) * static_cast<int16_t>(attenuation * element); });
-    // signal 1 delay
-    rotate(signal2->rbegin(), signal2->rbegin() + delay, signal2->rend());
 
-    // sum the 2 signals
 
-    transform(signal1->begin(), signal1->end(), signal2->begin(), sum->begin(), plus<int16_t>());
+    return 0;
 }
 
 bool saturated(const shared_ptr<vector<int16_t>> &values, int16_t gate)
