@@ -109,6 +109,44 @@ int16_t leadingEdgeDiscrimination(const shared_ptr<vector<int16_t>> &values, int
     return distance(values->begin(), it);
 }
 
+shared_ptr<vector<int16_t>> delayWithGaussian(const shared_ptr<vector<int16_t>>& values, int16_t delay) {
+
+    shared_ptr<vector<int16_t>> delayed = make_shared<vector<int16_t>>(*values);
+
+    // mean on delay
+
+    Double_t mean = static_cast<Double_t>(accumulate(delayed->begin(), delayed->begin() + delay, 0)) / delayed->size();
+
+    // standard deviation on delay
+    Double_t stdDeviation1 = sqrt(accumulate(delayed->begin(), delayed->begin() + delay, 0, 
+        [mean](Double_t acc, int16_t x){
+            return acc + (x - mean)*(x - mean);
+    }) / delay);
+
+    // normal distribution instance
+
+    normal_distribution<Double_t> distribution1(mean, stdDeviation1);
+
+    //rotate vector with 'delay' samples
+
+    rotate(delayed->rbegin(), delayed->rbegin() + delay, delayed->rend());
+
+    //populate shifted samples with the normal distribution
+
+    random_device rd;
+
+    default_random_engine generator(rd());
+
+    //generate random values
+
+    transform(delayed->begin(), delayed->begin() + delay, delayed->begin(), 
+        [&distribution1, &generator](int16_t){
+            return static_cast<int16_t>(distribution1(generator));  
+    });
+
+    return delayed;
+}
+
 int16_t CFD(const shared_ptr<vector<int16_t>> &values, float attenuation, int16_t delay)
 {
     shared_ptr<vector<int16_t>> signal1 = make_shared<vector<int16_t>>(*values);
@@ -314,6 +352,8 @@ void drawEvent(const Event &event, const json &jsonConfig)
     graph->Draw("APL");
 
     int16_t gateLength = jsonConfig["gateLength"];
+    int16_t delay = jsonConfig["delay"];
+
 
     int16_t thresholdX = event.thresholdIndex;
     int16_t thresholdY = (*(event.waveform))[event.thresholdIndex];
@@ -357,10 +397,14 @@ void drawEvent(const Event &event, const json &jsonConfig)
         text4->SetNDC();
         text4->Draw();
     }
+    // //verify delay function
+    // shared_ptr<TGraph> graph1 = drawWaveform(delayWithGaussian(event.waveform, delay), event.board, event.channel);
+    // graph1->Draw("PL");
 
     gPad->Update();
     gPad->WaitPrimitive("ggg");
     gPad->Clear();
+
 }
 
 void drawEvents(const shared_ptr<vector<Event>> &events, string configFileName)

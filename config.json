@@ -97,5 +97,6 @@
     "gateLength": 100,
     "preGate": 20,
     "saturationGate": 3,
-    "amplitudeFraction": 0.1
+    "amplitudeFraction": 0.1,
+    "delay": 500
 }
