@@ -3,3 +3,4 @@ eventProto.capnp.h
 eventProto.capnp.c++
 .vscode/
 *.root
+convert
