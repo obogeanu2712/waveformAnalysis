@@ -115,17 +115,17 @@ shared_ptr<vector<int16_t>> delayWithGaussian(const shared_ptr<vector<int16_t>>&
 
     // mean on delay
 
-    Double_t mean = static_cast<Double_t>(accumulate(delayed->begin(), delayed->begin() + delay, 0)) / delayed->size();
+    double_t mean = static_cast<double_t>(accumulate(delayed->begin(), delayed->begin() + delay, 0)) / delayed->size();
 
     // standard deviation on delay
-    Double_t stdDeviation1 = sqrt(accumulate(delayed->begin(), delayed->begin() + delay, 0, 
-        [mean](Double_t acc, int16_t x){
+    double_t stdDeviation1 = sqrt(accumulate(delayed->begin(), delayed->begin() + delay, 0, 
+        [mean](double_t acc, int16_t x){
             return acc + (x - mean)*(x - mean);
     }) / delay);
 
     // normal distribution instance
 
-    normal_distribution<Double_t> distribution1(mean, stdDeviation1);
+    normal_distribution<double_t> distribution1(mean, stdDeviation1);
 
     //rotate vector with 'delay' samples
 
@@ -147,50 +147,28 @@ shared_ptr<vector<int16_t>> delayWithGaussian(const shared_ptr<vector<int16_t>>&
     return delayed;
 }
 
-int16_t CFD(const shared_ptr<vector<int16_t>> &values, float attenuation, int16_t delay)
+shared_ptr<vector<int16_t>> attenuate(const shared_ptr<vector<int16_t>>& values, double_t attenuation) {
+
+    shared_ptr<vector<int16_t>> attenuated = make_shared<vector<int16_t>>();
+    attenuated->reserve(values->size());
+    transform(values->begin(), values->end(), attenuated->begin(), [attenuation](int16_t element){
+        return static_cast<int16_t>(attenuation * element);
+    });
+    return attenuated;
+}
+
+int16_t CFD(const shared_ptr<vector<int16_t>> &values, double_t attenuation, int16_t delay)
 {
-    shared_ptr<vector<int16_t>> signal1 = make_shared<vector<int16_t>>(*values);
-    shared_ptr<vector<int16_t>> signal2 = make_shared<vector<int16_t>>(*values);
+    shared_ptr<vector<int16_t>> delayed = delayWithGaussian(values, delay);
+
+    shared_ptr<vector<int16_t>> flippedAttenuated = reverseWaveform(attenuate(values, attenuation));
+
     shared_ptr<vector<int16_t>> sum = make_shared<vector<int16_t>>();
+
     sum->reserve(values->size());
-    // mean on delay
 
-    Double_t mean1 = static_cast<Double_t>(accumulate(signal1->begin(), signal1->begin() + delay, 0)) / signal1->size();
+    transform(delayed->begin(), delayed->end(), flippedAttenuated->begin(), sum->begin(), plus<int16_t>());
 
-    // standard deviation on delay
-    Double_t stdDeviation1 = sqrt(accumulate(signal1->begin(), signal1->begin() + delay, 0, 
-        [mean1](Double_t acc, int16_t x){
-            return acc + (x - mean1)*(x - mean1);
-    }) / delay);
-
-    // normal distribution instance
-
-    normal_distribution<Double_t> distribution1(mean1, stdDeviation1);
-
-    //rotate vector with 'delay' samples
-
-    rotate(signal1->rbegin(), signal1->rbegin() + delay, signal1->rend());
-
-    //populate shifted samples with the normal distribution
-
-    random_device rd;
-
-    default_random_engine generator(rd());
-
-    //generate random values
-
-    transform(signal1->begin(), signal1->begin() + delay, signal1->begin(), 
-        [&distribution1, &generator](int16_t){
-            return static_cast<int16_t>(distribution1(generator));  
-        });
-
-
-    // signal 2 attenuation and reverse
-    transform(signal2->begin(), signal2->end(), signal2->begin(), [attenuation](int16_t element)
-              { return (-1) * static_cast<int16_t>(attenuation * element); });
-
-
-    return 0;
 }
 
 bool saturated(const shared_ptr<vector<int16_t>> &values, int16_t gate)

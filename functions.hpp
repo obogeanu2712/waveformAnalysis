@@ -44,7 +44,9 @@ int16_t leadingEdgeDiscrimination(const shared_ptr<vector<int16_t>> &values, int
 
 shared_ptr<vector<int16_t>> delayWithGaussian(const shared_ptr<vector<int16_t>>& values, int16_t delay);
 
-int16_t CFD(const shared_ptr<vector<int16_t>> &values, float attenuation, int16_t delay);
+shared_ptr<vector<int16_t>> attenuate(const shared_ptr<vector<int16_t>>& values, double_t attenuation);
+
+int16_t CFD(const shared_ptr<vector<int16_t>> &values, double_t attenuation, int16_t delay);
 
 bool saturated(const shared_ptr<vector<int16_t>> &values, int16_t gate);
 
