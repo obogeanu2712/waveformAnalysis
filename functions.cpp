@@ -109,7 +109,8 @@ int16_t leadingEdgeDiscrimination(const shared_ptr<vector<int16_t>> &values, int
     return distance(values->begin(), it);
 }
 
-shared_ptr<vector<int16_t>> delayWithGaussian(const shared_ptr<vector<int16_t>>& values, int16_t delay) {
+shared_ptr<vector<int16_t>> delayWithGaussian(const shared_ptr<vector<int16_t>> &values, int16_t delay)
+{
 
     shared_ptr<vector<int16_t>> delayed = make_shared<vector<int16_t>>(*values);
 
@@ -118,54 +119,57 @@ shared_ptr<vector<int16_t>> delayWithGaussian(const shared_ptr<vector<int16_t>>&
     double_t mean = static_cast<double_t>(accumulate(delayed->begin(), delayed->begin() + delay, 0)) / delayed->size();
 
     // standard deviation on delay
-    double_t stdDeviation1 = sqrt(accumulate(delayed->begin(), delayed->begin() + delay, 0, 
-        [mean](double_t acc, int16_t x){
-            return acc + (x - mean)*(x - mean);
-    }) / delay);
+    double_t stdDeviation1 = sqrt(accumulate(delayed->begin(), delayed->begin() + delay, 0,
+                                             [mean](double_t acc, int16_t x)
+                                             {
+                                                 return acc + (x - mean) * (x - mean);
+                                             }) /
+                                  delay);
 
     // normal distribution instance
 
     normal_distribution<double_t> distribution1(mean, stdDeviation1);
 
-    //rotate vector with 'delay' samples
+    // rotate vector with 'delay' samples
 
     rotate(delayed->rbegin(), delayed->rbegin() + delay, delayed->rend());
 
-    //populate shifted samples with the normal distribution
+    // populate shifted samples with the normal distribution
 
     random_device rd;
 
     default_random_engine generator(rd());
 
-    //generate random values
+    // generate random values
 
-    transform(delayed->begin(), delayed->begin() + delay, delayed->begin(), 
-        [&distribution1, &generator](int16_t){
-            return static_cast<int16_t>(distribution1(generator));  
-    });
+    transform(delayed->begin(), delayed->begin() + delay, delayed->begin(),
+              [&distribution1, &generator](int16_t)
+              {
+                  return static_cast<int16_t>(distribution1(generator));
+              });
 
     return delayed;
 }
 
-shared_ptr<vector<int16_t>> attenuate(const shared_ptr<vector<int16_t>>& values, double_t attenuation) {
+shared_ptr<vector<int16_t>> attenuate(const shared_ptr<vector<int16_t>> &values, double_t attenuation)
+{
 
     shared_ptr<vector<int16_t>> attenuated = make_shared<vector<int16_t>>();
     attenuated->reserve(values->size());
-    transform(values->begin(), values->end(), back_inserter(*attenuated), [attenuation](int16_t element){
-        return static_cast<int16_t>(attenuation * element);
-    });
+    transform(values->begin(), values->end(), back_inserter(*attenuated), [attenuation](int16_t element)
+              { return static_cast<int16_t>(attenuation * element); });
     return attenuated;
 }
 
-shared_ptr<vector<int16_t>> sumSignals(const shared_ptr<vector<int16_t>>& values1, const shared_ptr<vector<int16_t>>& values2) {
-        shared_ptr<vector<int16_t>> sum = make_shared<vector<int16_t>>();
+shared_ptr<vector<int16_t>> sumSignals(const shared_ptr<vector<int16_t>> &values1, const shared_ptr<vector<int16_t>> &values2)
+{
+    shared_ptr<vector<int16_t>> sum = make_shared<vector<int16_t>>();
 
-        sum->reserve(values1->size());
+    sum->reserve(values1->size());
 
-        transform(values1->begin(), values1->end(), values2->begin(), sum->begin(), plus<int16_t>());
+    transform(values1->begin(), values1->end(), values2->begin(), sum->begin(), plus<int16_t>());
 
-        return sum;
-
+    return sum;
 }
 
 int16_t CFD(const shared_ptr<vector<int16_t>> &values, double_t attenuation, int16_t delay)
@@ -343,7 +347,6 @@ void drawEvent(const Event &event, const json &jsonConfig)
 
     int16_t attenuation = jsonConfig["attenuation"];
 
-
     int16_t thresholdX = event.thresholdIndex;
     int16_t thresholdY = (*(event.waveform))[event.thresholdIndex];
 
@@ -390,14 +393,13 @@ void drawEvent(const Event &event, const json &jsonConfig)
     // shared_ptr<TGraph> graph1 = drawWaveform(delayWithGaussian(event.waveform, delay), event.board, event.channel);
     // graph1->Draw("PL");
 
-    // //verify attenuation function
-    // shared_ptr<TGraph> graph1 = drawWaveform(attenuate(event.waveform, attenuation), event.board, event.channel);
-    // graph1->Draw("APL");
+    // verify attenuation function
+    shared_ptr<TGraph> graph1 = drawWaveform(attenuate(delayWithGaussian(event.waveform, delay), attenuation), event.board, event.channel);
+    graph1->Draw("PL");
 
     gPad->Update();
     gPad->WaitPrimitive("ggg");
     gPad->Clear();
-
 }
 
 void drawEvents(const shared_ptr<vector<Event>> &events, string configFileName)
