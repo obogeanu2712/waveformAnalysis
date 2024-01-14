@@ -46,6 +46,8 @@ shared_ptr<vector<int16_t>> delayWithGaussian(const shared_ptr<vector<int16_t>>&
 
 shared_ptr<vector<int16_t>> attenuate(const shared_ptr<vector<int16_t>>& values, double_t attenuation);
 
+shared_ptr<vector<int16_t>> sumSignals(const shared_ptr<vector<int16_t>>& values1, const shared_ptr<vector<int16_t>>& values2);
+
 int16_t CFD(const shared_ptr<vector<int16_t>> &values, double_t attenuation, int16_t delay);
 
 bool saturated(const shared_ptr<vector<int16_t>> &values, int16_t gate);

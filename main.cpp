@@ -1,7 +1,6 @@
 #include <vector>
 #include <TApplication.h>
 #include <TText.h>
-
 #include <TCanvas.h>
 #include <string>
 #include "functions.hpp" //my header

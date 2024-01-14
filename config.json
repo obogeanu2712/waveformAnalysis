@@ -98,5 +98,6 @@
     "preGate": 20,
     "saturationGate": 3,
     "amplitudeFraction": 0.1,
-    "delay": 500
+    "delay": 500,
+    "attenuation" : 0.5
 }

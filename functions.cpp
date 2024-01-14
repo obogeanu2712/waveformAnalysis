@@ -151,10 +151,21 @@ shared_ptr<vector<int16_t>> attenuate(const shared_ptr<vector<int16_t>>& values,
 
     shared_ptr<vector<int16_t>> attenuated = make_shared<vector<int16_t>>();
     attenuated->reserve(values->size());
-    transform(values->begin(), values->end(), attenuated->begin(), [attenuation](int16_t element){
+    transform(values->begin(), values->end(), back_inserter(*attenuated), [attenuation](int16_t element){
         return static_cast<int16_t>(attenuation * element);
     });
     return attenuated;
+}
+
+shared_ptr<vector<int16_t>> sumSignals(const shared_ptr<vector<int16_t>>& values1, const shared_ptr<vector<int16_t>>& values2) {
+        shared_ptr<vector<int16_t>> sum = make_shared<vector<int16_t>>();
+
+        sum->reserve(values1->size());
+
+        transform(values1->begin(), values1->end(), values2->begin(), sum->begin(), plus<int16_t>());
+
+        return sum;
+
 }
 
 int16_t CFD(const shared_ptr<vector<int16_t>> &values, double_t attenuation, int16_t delay)
@@ -163,12 +174,9 @@ int16_t CFD(const shared_ptr<vector<int16_t>> &values, double_t attenuation, int
 
     shared_ptr<vector<int16_t>> flippedAttenuated = reverseWaveform(attenuate(values, attenuation));
 
-    shared_ptr<vector<int16_t>> sum = make_shared<vector<int16_t>>();
+    shared_ptr<vector<int16_t>> sum = sumSignals(delayed, flippedAttenuated);
 
-    sum->reserve(values->size());
-
-    transform(delayed->begin(), delayed->end(), flippedAttenuated->begin(), sum->begin(), plus<int16_t>());
-
+    return 0;
 }
 
 bool saturated(const shared_ptr<vector<int16_t>> &values, int16_t gate)
@@ -330,7 +338,10 @@ void drawEvent(const Event &event, const json &jsonConfig)
     graph->Draw("APL");
 
     int16_t gateLength = jsonConfig["gateLength"];
-    int16_t delay = jsonConfig["delay"];
+
+    double_t delay = jsonConfig["delay"];
+
+    int16_t attenuation = jsonConfig["attenuation"];
 
 
     int16_t thresholdX = event.thresholdIndex;
@@ -378,6 +389,10 @@ void drawEvent(const Event &event, const json &jsonConfig)
     // //verify delay function
     // shared_ptr<TGraph> graph1 = drawWaveform(delayWithGaussian(event.waveform, delay), event.board, event.channel);
     // graph1->Draw("PL");
+
+    // //verify attenuation function
+    // shared_ptr<TGraph> graph1 = drawWaveform(attenuate(event.waveform, attenuation), event.board, event.channel);
+    // graph1->Draw("APL");
 
     gPad->Update();
     gPad->WaitPrimitive("ggg");
