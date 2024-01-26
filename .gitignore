@@ -4,3 +4,4 @@ eventProto.capnp.c++
 .vscode/
 *.root
 convert
+data.txt

@@ -20,8 +20,11 @@
 #include <random>
 #include <cstdint>
 
+
 using namespace std;
 using json = nlohmann::json;
+
+// ofstream dataOut("data.txt");
 
 Event::Event(uint8_t board, uint8_t channel, uint16_t energy, shared_ptr<vector<int16_t>> waveform) : board(channel), channel(channel), fileEnergy(energy), waveform(waveform) {}
 
@@ -156,8 +159,9 @@ shared_ptr<vector<int16_t>> attenuate(const shared_ptr<vector<int16_t>> &values,
 
     shared_ptr<vector<int16_t>> attenuated = make_shared<vector<int16_t>>();
     attenuated->reserve(values->size());
-    transform(values->begin(), values->end(), back_inserter(*attenuated), [attenuation](int16_t element)
-              { return static_cast<int16_t>(attenuation * element); });
+    transform(values->begin(), values->end(), back_inserter(*attenuated), [attenuation](int16_t element){
+        return static_cast<int16_t>(attenuation * element);
+    });
     return attenuated;
 }
 
@@ -343,9 +347,10 @@ void drawEvent(const Event &event, const json &jsonConfig)
 
     int16_t gateLength = jsonConfig["gateLength"];
 
-    double_t delay = jsonConfig["delay"];
+    int16_t delay = jsonConfig["delay"];
 
     int16_t attenuation = jsonConfig["attenuation"];
+
 
     int16_t thresholdX = event.thresholdIndex;
     int16_t thresholdY = (*(event.waveform))[event.thresholdIndex];
@@ -359,7 +364,7 @@ void drawEvent(const Event &event, const json &jsonConfig)
     horizontalLine->Draw();
     gateVerticalLine->SetLineStyle(2);
     gateVerticalLine->Draw();
-    float YTextCoordinate = 0.7;
+    Double_t YTextCoordinate = 0.7;
     shared_ptr<TText> text(new TText(0.7, YTextCoordinate -= 0.05, Form("File Energy: %d", event.fileEnergy)));
     text->SetNDC();
     text->Draw();
@@ -389,13 +394,13 @@ void drawEvent(const Event &event, const json &jsonConfig)
         text4->SetNDC();
         text4->Draw();
     }
-    // //verify delay function
+    // // verify delay function
     // shared_ptr<TGraph> graph1 = drawWaveform(delayWithGaussian(event.waveform, delay), event.board, event.channel);
     // graph1->Draw("PL");
 
-    // verify attenuation function
-    shared_ptr<TGraph> graph1 = drawWaveform(attenuate(delayWithGaussian(event.waveform, delay), attenuation), event.board, event.channel);
-    graph1->Draw("PL");
+    // //verify attenuation function
+    // shared_ptr<TGraph> graph1 = drawWaveform(attenuate(event.waveform, attenuation), event.board, event.channel);
+    // graph1->Draw("APL");
 
     gPad->Update();
     gPad->WaitPrimitive("ggg");
