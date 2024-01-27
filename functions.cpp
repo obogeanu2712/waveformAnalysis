@@ -349,7 +349,7 @@ void drawEvent(const Event &event, const json &jsonConfig)
 
     int16_t delay = jsonConfig["delay"];
 
-    int16_t attenuation = jsonConfig["attenuation"];
+    double_t attenuation = jsonConfig["attenuation"];
 
 
     int16_t thresholdX = event.thresholdIndex;
@@ -398,9 +398,9 @@ void drawEvent(const Event &event, const json &jsonConfig)
     // shared_ptr<TGraph> graph1 = drawWaveform(delayWithGaussian(event.waveform, delay), event.board, event.channel);
     // graph1->Draw("PL");
 
-    // //verify attenuation function
-    // shared_ptr<TGraph> graph1 = drawWaveform(attenuate(event.waveform, attenuation), event.board, event.channel);
-    // graph1->Draw("APL");
+    //verify attenuation function
+    shared_ptr<TGraph> graph1 = drawWaveform(delayWithGaussian(attenuate(event.waveform, attenuation), delay), event.board, event.channel);
+    graph1->Draw("PL");
 
     gPad->Update();
     gPad->WaitPrimitive("ggg");
