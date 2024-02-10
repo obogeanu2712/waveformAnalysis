@@ -15,6 +15,7 @@ public:
     uint8_t board;
     uint8_t channel;
     int16_t thresholdIndex;
+    int16_t CFDindex;
     uint16_t fileEnergy;
     int16_t energyMax;
     int16_t energyGate;
@@ -48,16 +49,16 @@ shared_ptr<vector<int16_t>> attenuate(const shared_ptr<vector<int16_t>>& values,
 
 shared_ptr<vector<int16_t>> sumSignals(const shared_ptr<vector<int16_t>>& values1, const shared_ptr<vector<int16_t>>& values2);
 
-int16_t CFD(const shared_ptr<vector<int16_t>> &values, double_t attenuation, int16_t delay);
+int16_t CFD(const shared_ptr<vector<int16_t>> &values, double_t attenuation, int16_t delay, int16_t threshold);
 
 bool saturated(const shared_ptr<vector<int16_t>> &values, int16_t gate);
 
-bool pileup(const shared_ptr<vector<int16_t>> &values, float amplitudeFraction, int16_t threshold, int16_t gateLength);
+bool pileup(const shared_ptr<vector<int16_t>> &values, double_t amplitudeFraction, int16_t threshold, int16_t gateLength);
 
 int16_t energyExtractionMax(const shared_ptr<vector<int16_t>> &values);
 
 int16_t energyExtractionGate(const shared_ptr<vector<int16_t>> &values, int16_t threshold, int16_t gateLength, int16_t preGate);
 
-pair<int16_t, bool> EnergyGatePileup(const shared_ptr<vector<int16_t>> &values, int16_t threshold, int16_t gateLength, int16_t preGate, float amplitudeFraction);
+pair<int16_t, bool> EnergyGatePileup(const shared_ptr<vector<int16_t>> &values, int16_t threshold, int16_t gateLength, int16_t preGate, double_t amplitudeFraction);
 
 shared_ptr<vector<Event>> processEvents(const shared_ptr<vector<Event>> &rawEvents, string configFileName);

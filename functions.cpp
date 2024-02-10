@@ -20,11 +20,10 @@
 #include <random>
 #include <cstdint>
 
-
 using namespace std;
 using json = nlohmann::json;
 
-// ofstream dataOut("data.txt");
+ofstream dataOut("data.txt");
 
 Event::Event(uint8_t board, uint8_t channel, uint16_t energy, shared_ptr<vector<int16_t>> waveform) : board(channel), channel(channel), fileEnergy(energy), waveform(waveform) {}
 
@@ -168,15 +167,12 @@ shared_ptr<vector<int16_t>> attenuate(const shared_ptr<vector<int16_t>> &values,
 shared_ptr<vector<int16_t>> sumSignals(const shared_ptr<vector<int16_t>> &values1, const shared_ptr<vector<int16_t>> &values2)
 {
     shared_ptr<vector<int16_t>> sum = make_shared<vector<int16_t>>();
-
     sum->reserve(values1->size());
-
-    transform(values1->begin(), values1->end(), values2->begin(), sum->begin(), plus<int16_t>());
-
+    transform(values1->begin(), values1->end(), values2->begin(), back_inserter(*sum), plus<int16_t>());
     return sum;
 }
 
-int16_t CFD(const shared_ptr<vector<int16_t>> &values, double_t attenuation, int16_t delay)
+int16_t CFD(const shared_ptr<vector<int16_t>> &values, double_t attenuation, int16_t delay, int16_t threshold)
 {
     shared_ptr<vector<int16_t>> delayed = delayWithGaussian(values, delay);
 
@@ -184,7 +180,18 @@ int16_t CFD(const shared_ptr<vector<int16_t>> &values, double_t attenuation, int
 
     shared_ptr<vector<int16_t>> sum = sumSignals(delayed, flippedAttenuated);
 
-    return 0;
+    int16_t LEDindex = leadingEdgeDiscrimination(sum, threshold);
+
+    vector<int16_t>::iterator zeroPoint = find_if(sum->begin() + LEDindex, sum->end(), 
+        [](int16_t element){
+            return element > 0;
+        });
+
+    if(zeroPoint != sum->end()) {
+        return distance(sum->begin(), zeroPoint);
+    } else {
+        return 0;
+    }
 }
 
 bool saturated(const shared_ptr<vector<int16_t>> &values, int16_t gate)
@@ -196,7 +203,7 @@ bool saturated(const shared_ptr<vector<int16_t>> &values, int16_t gate)
     return it == max + gate;
 }
 
-bool pileup(const shared_ptr<vector<int16_t>> &values, float amplitudeFraction, int16_t threshold, int16_t gateLength)
+bool pileup(const shared_ptr<vector<int16_t>> &values, double_t amplitudeFraction, int16_t threshold, int16_t gateLength)
 {
     vector<int16_t>::iterator aboveThreshold = find_if(values->begin(), values->end(), [threshold](int16_t element)
                                                        { return element > threshold; });
@@ -253,7 +260,7 @@ int16_t energyExtractionGate(const shared_ptr<vector<int16_t>> &values, int16_t 
     return accumulate(values->begin() + pulseBegin, values->begin() + pulseEnd, 0) / gateLength;
 }
 
-pair<int16_t, bool> EnergyGatePileup(const shared_ptr<vector<int16_t>> &values, int16_t threshold, int16_t gateLength, int16_t preGate, float amplitudeFraction)
+pair<int16_t, bool> EnergyGatePileup(const shared_ptr<vector<int16_t>> &values, int16_t threshold, int16_t gateLength, int16_t preGate, double_t amplitudeFraction)
 {
     pair<int16_t, bool> result;
     result.first = energyExtractionGate(values, threshold, gateLength, preGate);
@@ -274,12 +281,14 @@ shared_ptr<vector<Event>> processEvents(const shared_ptr<vector<Event>> &rawEven
     int16_t gateLength = jsonConfig["gateLength"];
     int16_t preGate = jsonConfig["preGate"];
     int16_t saturationGate = jsonConfig["saturationGate"];
-    float amplitudeFraction = jsonConfig["amplitudeFraction"];
-
+    double_t amplitudeFraction = jsonConfig["amplitudeFraction"];
+    int16_t delay = jsonConfig["delay"];
+    double_t attenuation = jsonConfig["attenuation"];
     shared_ptr<vector<Event>> processedEvents = make_shared<vector<Event>>();
     processedEvents->reserve(rawEvents->size());
     transform(rawEvents->begin(), rawEvents->end(), back_inserter(*processedEvents),
-              [noiseSamples, threshold, gateLength, preGate, saturationGate, amplitudeFraction](const Event &event)
+              [noiseSamples, threshold, gateLength, preGate, saturationGate, 
+                amplitudeFraction, delay, attenuation](const Event &event)
               { 
         Event processedEvent(event);
         processedEvent.waveform = reverseWaveform(subtractBackground(processedEvent.waveform, noiseSamples));
@@ -288,6 +297,7 @@ shared_ptr<vector<Event>> processEvents(const shared_ptr<vector<Event>> &rawEven
         processedEvent.saturated = saturated(processedEvent.waveform, saturationGate);
         processedEvent.thresholdIndex = leadingEdgeDiscrimination(processedEvent.waveform, threshold);
         processedEvent.pileup = pileup(processedEvent.waveform, amplitudeFraction, threshold, gateLength);
+        processedEvent.CFDindex = CFD(processedEvent.waveform, attenuation, delay, threshold);
         return processedEvent; });
     return processedEvents;
 }
@@ -394,17 +404,76 @@ void drawEvent(const Event &event, const json &jsonConfig)
         text4->SetNDC();
         text4->Draw();
     }
+
+    gPad->Update();
+    gPad->WaitPrimitive("ggg");
+
     // // verify delay function
     // shared_ptr<TGraph> graph1 = drawWaveform(delayWithGaussian(event.waveform, delay), event.board, event.channel);
     // graph1->Draw("PL");
 
     //verify attenuation function
-    shared_ptr<TGraph> graph1 = drawWaveform(delayWithGaussian(attenuate(event.waveform, attenuation), delay), event.board, event.channel);
-    graph1->Draw("PL");
+    // gPad->Update();
+    // gPad->WaitPrimitive("ggg");
+
+    // shared_ptr<TGraph> graph1 = drawWaveform(delayWithGaussian(attenuate(event.waveform, attenuation), delay), event.board, event.channel);
+    // graph1->Draw("PL");
+
+    // verify sum function -- "graph" holds the original graph 
+    shared_ptr<vector<int16_t>> reversedAttenuated = reverseWaveform(attenuate(event.waveform, attenuation));
+    shared_ptr<vector<int16_t>> delayed = delayWithGaussian(event.waveform, delay);
+    shared_ptr<TGraph> graph2 = drawWaveform(delayed, event.board, event.channel);
+    shared_ptr<TGraph> graph3 = drawWaveform(reversedAttenuated, event.board, event.channel);
+    shared_ptr<vector<int16_t>> sum = sumSignals(delayed, reversedAttenuated);
+    shared_ptr<TGraph> graph4 = drawWaveform(sum, event.board, event.channel);
+    // gPad->Clear();
+    // graph3->Draw("APL");
+    // gPad->Update();
+    // gPad->WaitPrimitive("ggg");
+
+    gPad->Clear(); //only original
+    graph->Draw("APL");
+    gPad->Update();
+    gPad->WaitPrimitive("ggg");
+
+
+    gPad->Clear(); //only delayed
+    graph2->Draw("APL");
+    gPad->Update();
+    gPad->WaitPrimitive("ggg");
+
+    graph3->Draw("PL"); //delayed + reversed attenuated
+    gPad->Update();
+    gPad->WaitPrimitive("ggg");
+
+    gPad->Clear(); //only sum
+    graph4->Draw("APL");
+    gPad->Update();
+    gPad->WaitPrimitive("ggg");
+
+    int16_t CFDX = event.CFDindex;
+    int16_t CFDY = (*sum)[event.CFDindex];
+
+    shared_ptr<TLine> CFDverticalLine(new TLine(CFDX, graph4->GetYaxis()->GetXmin(), CFDX, graph4->GetYaxis()->GetXmax()));
+    shared_ptr<TLine> CFDhorizontalLine(new TLine(graph4->GetXaxis()->GetXmin(), CFDY, graph4->GetXaxis()->GetXmax(), CFDY));
+
+    shared_ptr<TLine> zeroLine(new TLine(graph4->GetYaxis()->GetXmin(), 0, graph4->GetYaxis()->GetXmax(), 0));
+
+    CFDverticalLine->SetLineStyle(2);
+    CFDverticalLine->Draw();
+
+    CFDhorizontalLine->SetLineStyle(2);
+    CFDhorizontalLine->Draw();
+
+    zeroLine->SetLineStyle(2);
+    zeroLine->Draw();
 
     gPad->Update();
     gPad->WaitPrimitive("ggg");
+
     gPad->Clear();
+
+
 }
 
 void drawEvents(const shared_ptr<vector<Event>> &events, string configFileName)
