@@ -15,11 +15,7 @@ public:
     uint8_t board;
     uint8_t channel;
     int16_t thresholdIndex;
-<<<<<<< HEAD
     pair<int16_t, double_t> CFD;
-=======
-    double_t CFDindex;
->>>>>>> 72489049804f5f572022a0c5102be0937bc875b7
     uint16_t fileEnergy;
     int16_t energyMax;
     int16_t energyGate;
@@ -53,11 +49,7 @@ shared_ptr<vector<int16_t>> attenuate(const shared_ptr<vector<int16_t>>& values,
 
 shared_ptr<vector<int16_t>> sumSignals(const shared_ptr<vector<int16_t>>& values1, const shared_ptr<vector<int16_t>>& values2);
 
-<<<<<<< HEAD
 pair<int16_t, double_t> CFD(const shared_ptr<vector<int16_t>> &values, double_t attenuation, int16_t delay, int16_t threshold);
-=======
-double_t CFD(const shared_ptr<vector<int16_t>> &values, double_t attenuation, int16_t delay, int16_t threshold);
->>>>>>> 72489049804f5f572022a0c5102be0937bc875b7
 
 bool saturated(const shared_ptr<vector<int16_t>> &values, int16_t gate);
 
