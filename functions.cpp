@@ -172,7 +172,7 @@ shared_ptr<vector<int16_t>> sumSignals(const shared_ptr<vector<int16_t>> &values
     return sum;
 }
 
-int16_t CFD(const shared_ptr<vector<int16_t>> &values, double_t attenuation, int16_t delay, int16_t threshold)
+pair<int16_t, double_t> CFD(const shared_ptr<vector<int16_t>> &values, double_t attenuation, int16_t delay, int16_t threshold)
 {
     shared_ptr<vector<int16_t>> delayed = delayWithGaussian(values, delay);
 
@@ -182,15 +182,24 @@ int16_t CFD(const shared_ptr<vector<int16_t>> &values, double_t attenuation, int
 
     int16_t LEDindex = leadingEdgeDiscrimination(sum, threshold);
 
-    vector<int16_t>::iterator zeroPoint = find_if(sum->begin() + LEDindex, sum->end(), 
+    vector<int16_t>::iterator aboveZeroPoint = find_if(sum->begin() + LEDindex, sum->end(), 
         [](int16_t element){
             return element > 0;
         });
 
-    if(zeroPoint != sum->end()) {
-        return distance(sum->begin(), zeroPoint);
+    // if(aboveZeroPoint != sum->end()) {
+    //     return distance(sum->begin(), aboveZeroPoint);
+    // } else {
+    //     return 0;
+    // }
+    if(aboveZeroPoint != sum->end()) {
+        //fine timestamping
+        double_t a = *aboveZeroPoint - *(aboveZeroPoint - 1);
+        double_t b = *aboveZeroPoint - a * distance(sum->begin(), aboveZeroPoint);
+        double_t distanceFromAbove = distance(sum->begin(), aboveZeroPoint) + b/a;
+        return make_pair(distance(sum->begin(), aboveZeroPoint), distanceFromAbove);
     } else {
-        return 0;
+        return make_pair(0, 0.0);
     }
 }
 
@@ -297,7 +306,7 @@ shared_ptr<vector<Event>> processEvents(const shared_ptr<vector<Event>> &rawEven
         processedEvent.saturated = saturated(processedEvent.waveform, saturationGate);
         processedEvent.thresholdIndex = leadingEdgeDiscrimination(processedEvent.waveform, threshold);
         processedEvent.pileup = pileup(processedEvent.waveform, amplitudeFraction, threshold, gateLength);
-        processedEvent.CFDindex = CFD(processedEvent.waveform, attenuation, delay, threshold);
+        processedEvent.CFD = CFD(processedEvent.waveform, attenuation, delay, threshold);
         return processedEvent; });
     return processedEvents;
 }
@@ -451,16 +460,21 @@ void drawEvent(const Event &event, const json &jsonConfig)
     gPad->Update();
     gPad->WaitPrimitive("ggg");
 
-    int16_t CFDX = event.CFDindex;
-    int16_t CFDY = (*sum)[event.CFDindex];
+    int16_t CFDint = event.CFD.first;
+    double_t CFDdouble = event.CFD.second;
+    int16_t CFDYint = (*sum)[CFDint];
 
-    shared_ptr<TLine> CFDverticalLine(new TLine(CFDX, graph4->GetYaxis()->GetXmin(), CFDX, graph4->GetYaxis()->GetXmax()));
-    shared_ptr<TLine> CFDhorizontalLine(new TLine(graph4->GetXaxis()->GetXmin(), CFDY, graph4->GetXaxis()->GetXmax(), CFDY));
+    shared_ptr<TLine> CFDverticalLine1(new TLine(CFDint, graph4->GetYaxis()->GetXmin(), CFDint, graph4->GetYaxis()->GetXmax()));
+    shared_ptr<TLine> CFDverticalLine2(new TLine(CFDint-CFDdouble, graph4->GetYaxis()->GetXmin(), CFDint-CFDdouble, graph4->GetYaxis()->GetXmax()));
+    shared_ptr<TLine> CFDhorizontalLine(new TLine(graph4->GetXaxis()->GetXmin(), CFDYint, graph4->GetXaxis()->GetXmax(), CFDYint));
 
     shared_ptr<TLine> zeroLine(new TLine(graph4->GetYaxis()->GetXmin(), 0, graph4->GetYaxis()->GetXmax(), 0));
 
-    CFDverticalLine->SetLineStyle(2);
-    CFDverticalLine->Draw();
+    CFDverticalLine1->SetLineStyle(2);
+    CFDverticalLine1->Draw();
+
+    CFDverticalLine2->SetLineStyle(2);
+    CFDverticalLine2->Draw();
 
     CFDhorizontalLine->SetLineStyle(2);
     CFDhorizontalLine->Draw();
