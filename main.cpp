@@ -5,6 +5,7 @@
 #include <string>
 #include "functions.hpp" //my header
 #include <memory>
+#include <TH1D.h>
 using namespace std;
 
 int main(int argc, char **argv)
@@ -20,5 +21,14 @@ int main(int argc, char **argv)
 
     // Display waveforms in TApp
     drawEvents(processedEvents, "config.json");
+
+    //create histogram and display it
+
+    // shared_ptr<TH1D> histogram = FineTimestampsHistogram(processedEvents);
+
+    // histogram->Draw();
+    // gPad->Update();
+    // gPad->WaitPrimitive("ggg");
+
     app.Run();
 }

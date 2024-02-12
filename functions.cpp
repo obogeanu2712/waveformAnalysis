@@ -9,6 +9,7 @@
 #include <TLatex.h>
 #include <TLine.h>
 #include <TH1I.h>
+#include <TH1D.h>
 #include <numeric>
 #include <cmath>
 #include <algorithm>
@@ -349,16 +350,25 @@ void drawTwoWaveforms(const shared_ptr<vector<int16_t>> &values1, const shared_p
     delete graph2;
 }
 
-void drawHistogram(const shared_ptr<vector<int16_t>> energies, uint8_t board, uint8_t channel)
-{
-    shared_ptr<TH1I> histogram = make_shared<TH1I>("histogram", Form("Board %d Channel %d", board, channel), 1000, 0, 0);
-    for (vector<int16_t>::iterator it = energies->begin(); it != energies->end(); it++)
-    {
-        histogram->Fill(*it);
+// void drawHistogram(const shared_ptr<vector<int16_t>> energies, uint8_t board, uint8_t channel)
+// {
+//     shared_ptr<TH1I> histogram = make_shared<TH1I>("histogram", Form("Board %d Channel %d", board, channel), 1000, 0, 0);
+//     for (vector<int16_t>::iterator it = energies->begin(); it != energies->end(); it++)
+//     {
+//         histogram->Fill(*it);
+//     }
+//     histogram->Draw();
+//     gPad->Update();
+//     gPad->WaitPrimitive("ggg");
+// }
+
+shared_ptr<TH1D> FineTimestampsHistogram(shared_ptr<vector<Event>> Events) {
+    shared_ptr<TH1D> histogram = make_shared<TH1D>("FineTimestampsHistogram",
+        "Fine CFD Timestamps histogram", 100, 0.0, 3.0);
+    for(auto it = Events->begin(); it != Events->end(); it++) {
+        histogram->Fill(it->CFD.second);
     }
-    histogram->Draw();
-    gPad->Update();
-    gPad->WaitPrimitive("ggg");
+    return histogram;
 }
 
 void drawEvent(const Event &event, const json &jsonConfig)
@@ -477,12 +487,18 @@ void drawEvent(const Event &event, const json &jsonConfig)
 
     CFDverticalLine2->SetLineStyle(2);
     CFDverticalLine2->Draw();
-
     // CFDhorizontalLine->SetLineStyle(2);
     // CFDhorizontalLine->Draw();
 
     zeroLine->SetLineStyle(2);
     zeroLine->Draw();
+
+    shared_ptr<TText> text5 = make_shared<TText>(0.7,0.7, Form("CFD fine : %f", event.CFD.second));
+    text5->SetNDC();
+    text5->Draw();
+    shared_ptr<TText> text6 = make_shared<TText>(0.7,0.65, Form("CFD raw : %d", event.CFD.first));
+    text6->SetNDC();
+    text6->Draw();
 
     gPad->Update();
     gPad->WaitPrimitive("ggg");
@@ -501,6 +517,8 @@ void drawEvents(const shared_ptr<vector<Event>> &events, string configFileName)
 
     for (const Event &event : *events)
     {
-        drawEvent(event, jsonConfig);
+        if(event.CFD.second > 1) {
+            drawEvent(event, jsonConfig);
+        }
     }
 }

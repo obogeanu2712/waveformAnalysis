@@ -6,6 +6,7 @@
 #include <map>
 #include <TGraph.h>
 #include <nlohmann/json.hpp>
+#include <TH1D.h>
 
 using namespace std;
 using json = nlohmann::json;
@@ -35,7 +36,9 @@ shared_ptr<TGraph> drawWaveform(const shared_ptr<vector<int16_t>> &values, uint8
 
 void drawTwoWaveforms(const shared_ptr<vector<int16_t>> &values1, const shared_ptr<vector<int16_t>> &values2);
 
-void drawHistogram(const shared_ptr<vector<int16_t>> energies, uint8_t board, uint8_t channel);
+shared_ptr<TH1D> FineTimestampsHistogram(shared_ptr<vector<Event>> Events);
+
+// void drawHistogram(const shared_ptr<vector<int16_t>> energies, uint8_t board, uint8_t channel);
 
 shared_ptr<vector<int16_t>> subtractBackground(const shared_ptr<vector<int16_t>> &values, int16_t noiseSamples);
 
