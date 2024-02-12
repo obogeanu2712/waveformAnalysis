@@ -172,7 +172,11 @@ shared_ptr<vector<int16_t>> sumSignals(const shared_ptr<vector<int16_t>> &values
     return sum;
 }
 
+<<<<<<< HEAD
 pair<int16_t, double_t> CFD(const shared_ptr<vector<int16_t>> &values, double_t attenuation, int16_t delay, int16_t threshold)
+=======
+double_t CFD(const shared_ptr<vector<int16_t>> &values, double_t attenuation, int16_t delay, int16_t threshold)
+>>>>>>> 72489049804f5f572022a0c5102be0937bc875b7
 {
     shared_ptr<vector<int16_t>> delayed = delayWithGaussian(values, delay);
 
@@ -186,12 +190,15 @@ pair<int16_t, double_t> CFD(const shared_ptr<vector<int16_t>> &values, double_t 
         [](int16_t element){
             return element > 0;
         });
+    //  //if you don't want fine timestamping you decomment the code bellow
+    // //and change function prototype to return int16_t value
 
     // if(aboveZeroPoint != sum->end()) {
     //     return distance(sum->begin(), aboveZeroPoint);
     // } else {
     //     return 0;
     // }
+<<<<<<< HEAD
     if(aboveZeroPoint != sum->end()) {
         //fine timestamping
         double_t a = *aboveZeroPoint - *(aboveZeroPoint - 1);
@@ -201,6 +208,14 @@ pair<int16_t, double_t> CFD(const shared_ptr<vector<int16_t>> &values, double_t 
     } else {
         return make_pair(0, 0.0);
     }
+=======
+
+    //fine timestamping
+    double_t a = *aboveZeroPoint - *(aboveZeroPoint - 1);
+    double_t b = *aboveZeroPoint - a * distance(sum->begin(), aboveZeroPoint);
+
+    return -b/a;
+>>>>>>> 72489049804f5f572022a0c5102be0937bc875b7
 }
 
 bool saturated(const shared_ptr<vector<int16_t>> &values, int16_t gate)
@@ -460,6 +475,7 @@ void drawEvent(const Event &event, const json &jsonConfig)
     gPad->Update();
     gPad->WaitPrimitive("ggg");
 
+<<<<<<< HEAD
     int16_t CFDint = event.CFD.first;
     double_t CFDdouble = event.CFD.second;
     int16_t CFDYint = (*sum)[CFDint];
@@ -467,6 +483,17 @@ void drawEvent(const Event &event, const json &jsonConfig)
     shared_ptr<TLine> CFDverticalLine1(new TLine(CFDint, graph4->GetYaxis()->GetXmin(), CFDint, graph4->GetYaxis()->GetXmax()));
     shared_ptr<TLine> CFDverticalLine2(new TLine(CFDint-CFDdouble, graph4->GetYaxis()->GetXmin(), CFDint-CFDdouble, graph4->GetYaxis()->GetXmax()));
     shared_ptr<TLine> CFDhorizontalLine(new TLine(graph4->GetXaxis()->GetXmin(), CFDYint, graph4->GetXaxis()->GetXmax(), CFDYint));
+=======
+    double_t CFDX = event.CFDindex;
+
+    // int16_t CFDX = event.CFDindex;
+    // int16_t CFDY = (*sum)[event.CFDindex];
+
+    shared_ptr<TLine> CFDverticalLine(new TLine(CFDX, graph4->GetYaxis()->GetXmin(), CFDX, graph4->GetYaxis()->GetXmax()));
+    // shared_ptr<TLine> CFDhorizontalLine(new TLine(graph4->GetXaxis()->GetXmin(), CFDY, graph4->GetXaxis()->GetXmax(), CFDY));
+
+
+>>>>>>> 72489049804f5f572022a0c5102be0937bc875b7
 
     shared_ptr<TLine> zeroLine(new TLine(graph4->GetYaxis()->GetXmin(), 0, graph4->GetYaxis()->GetXmax(), 0));
 
@@ -476,8 +503,8 @@ void drawEvent(const Event &event, const json &jsonConfig)
     CFDverticalLine2->SetLineStyle(2);
     CFDverticalLine2->Draw();
 
-    CFDhorizontalLine->SetLineStyle(2);
-    CFDhorizontalLine->Draw();
+    // CFDhorizontalLine->SetLineStyle(2);
+    // CFDhorizontalLine->Draw();
 
     zeroLine->SetLineStyle(2);
     zeroLine->Draw();
