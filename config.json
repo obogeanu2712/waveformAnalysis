@@ -99,5 +99,6 @@
     "saturationGate": 3,
     "amplitudeFraction": 0.1,
     "delay": 20,
-    "attenuation" : 0.5
+    "attenuation" : 0.5,
+    "movingAverageWindow" : 10
 }

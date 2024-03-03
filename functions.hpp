@@ -52,6 +52,8 @@ shared_ptr<vector<int16_t>> attenuate(const shared_ptr<vector<int16_t>>& values,
 
 shared_ptr<vector<int16_t>> sumSignals(const shared_ptr<vector<int16_t>>& values1, const shared_ptr<vector<int16_t>>& values2);
 
+shared_ptr<vector<int16_t>> movingAverage(const shared_ptr<vector<int16_t>>& values, int16_t windowSize);
+
 pair<int16_t, double_t> CFD(const shared_ptr<vector<int16_t>> &values, double_t attenuation, int16_t delay, int16_t threshold);
 
 bool saturated(const shared_ptr<vector<int16_t>> &values, int16_t gate);

@@ -173,6 +173,21 @@ shared_ptr<vector<int16_t>> sumSignals(const shared_ptr<vector<int16_t>> &values
     return sum;
 }
 
+shared_ptr<vector<int16_t>> movingAverage(const shared_ptr<vector<int16_t>>& values, int16_t windowSize) {
+    shared_ptr<vector<int16_t>> result = make_shared<vector<int16_t>>();
+    result->reserve(values->size());
+    for(vector<int16_t>::iterator it = values->begin(); it != values->end(); it++) {
+        int32_t average = 0;
+        for(int16_t i = -windowSize; i <= windowSize; i++) {
+            if(it + i >= values->begin() && it + i < values->end()) {
+                average += *(it + i);
+            }
+        }
+        result->push_back((int16_t)(average / (2 * windowSize + 1)));
+    }
+    return result;
+}
+
 pair<int16_t, double_t> CFD(const shared_ptr<vector<int16_t>> &values, double_t attenuation, int16_t delay, int16_t threshold)
 {
     shared_ptr<vector<int16_t>> delayed = delayWithGaussian(values, delay);
@@ -189,7 +204,6 @@ pair<int16_t, double_t> CFD(const shared_ptr<vector<int16_t>> &values, double_t 
         });
     //  //if you don't want fine timestamping you decomment the code bellow
     // //and change function prototype to return int16_t value
-
     // if(aboveZeroPoint != sum->end()) {
     //     return distance(sum->begin(), aboveZeroPoint);
     // } else {
@@ -296,14 +310,15 @@ shared_ptr<vector<Event>> processEvents(const shared_ptr<vector<Event>> &rawEven
     double_t amplitudeFraction = jsonConfig["amplitudeFraction"];
     int16_t delay = jsonConfig["delay"];
     double_t attenuation = jsonConfig["attenuation"];
+    int16_t movingAverageWindow = jsonConfig["movingAverageWindow"];
     shared_ptr<vector<Event>> processedEvents = make_shared<vector<Event>>();
     processedEvents->reserve(rawEvents->size());
     transform(rawEvents->begin(), rawEvents->end(), back_inserter(*processedEvents),
               [noiseSamples, threshold, gateLength, preGate, saturationGate, 
-                amplitudeFraction, delay, attenuation](const Event &event)
+                amplitudeFraction, delay, attenuation, movingAverageWindow](const Event &event)
               { 
         Event processedEvent(event);
-        processedEvent.waveform = reverseWaveform(subtractBackground(processedEvent.waveform, noiseSamples));
+        processedEvent.waveform = movingAverage(reverseWaveform(subtractBackground(processedEvent.waveform, noiseSamples)), movingAverageWindow);
         processedEvent.energyMax = energyExtractionMax(processedEvent.waveform);
         processedEvent.energyGate = energyExtractionGate(processedEvent.waveform, threshold, gateLength, preGate);
         processedEvent.saturated = saturated(processedEvent.waveform, saturationGate);
@@ -382,6 +397,8 @@ void drawEvent(const Event &event, const json &jsonConfig)
 
     double_t attenuation = jsonConfig["attenuation"];
 
+    int16_t movingAverageWindow = jsonConfig["movingAverageWindow"];
+
 
     int16_t thresholdX = event.thresholdIndex;
     int16_t thresholdY = (*(event.waveform))[event.thresholdIndex];
@@ -428,83 +445,55 @@ void drawEvent(const Event &event, const json &jsonConfig)
 
     gPad->Update();
     gPad->WaitPrimitive("ggg");
-
-    // // verify delay function
-    // shared_ptr<TGraph> graph1 = drawWaveform(delayWithGaussian(event.waveform, delay), event.board, event.channel);
-    // graph1->Draw("PL");
-
-    //verify attenuation function
-    // gPad->Update();
-    // gPad->WaitPrimitive("ggg");
-
-    // shared_ptr<TGraph> graph1 = drawWaveform(delayWithGaussian(attenuate(event.waveform, attenuation), delay), event.board, event.channel);
-    // graph1->Draw("PL");
-
-    // verify sum function -- "graph" holds the original graph 
-    shared_ptr<vector<int16_t>> reversedAttenuated = reverseWaveform(attenuate(event.waveform, attenuation));
-    shared_ptr<vector<int16_t>> delayed = delayWithGaussian(event.waveform, delay);
-    shared_ptr<TGraph> graph2 = drawWaveform(delayed, event.board, event.channel);
-    shared_ptr<TGraph> graph3 = drawWaveform(reversedAttenuated, event.board, event.channel);
-    shared_ptr<vector<int16_t>> sum = sumSignals(delayed, reversedAttenuated);
-    shared_ptr<TGraph> graph4 = drawWaveform(sum, event.board, event.channel);
-    // gPad->Clear();
-    // graph3->Draw("APL");
-    // gPad->Update();
-    // gPad->WaitPrimitive("ggg");
-
-    gPad->Clear(); //only original
-    graph->Draw("APL");
-    gPad->Update();
-    gPad->WaitPrimitive("ggg");
-
-
-    gPad->Clear(); //only delayed
-    graph2->Draw("APL");
-    gPad->Update();
-    gPad->WaitPrimitive("ggg");
-
-    graph3->Draw("PL"); //delayed + reversed attenuated
-    gPad->Update();
-    gPad->WaitPrimitive("ggg");
-
-    gPad->Clear(); //only sum
-    graph4->Draw("APL");
-    gPad->Update();
-    gPad->WaitPrimitive("ggg");
-
-    int16_t CFDint = event.CFD.first;
-    double_t CFDdouble = event.CFD.second;
-    int16_t CFDYint = (*sum)[CFDint];
-
-    shared_ptr<TLine> CFDverticalLine1(new TLine(CFDint, graph4->GetYaxis()->GetXmin(), CFDint, graph4->GetYaxis()->GetXmax()));
-    shared_ptr<TLine> CFDverticalLine2(new TLine(CFDint-CFDdouble, graph4->GetYaxis()->GetXmin(), CFDint-CFDdouble, graph4->GetYaxis()->GetXmax()));
-    shared_ptr<TLine> CFDhorizontalLine(new TLine(graph4->GetXaxis()->GetXmin(), CFDYint, graph4->GetXaxis()->GetXmax(), CFDYint));
-
-    shared_ptr<TLine> zeroLine(new TLine(graph4->GetYaxis()->GetXmin(), 0, graph4->GetYaxis()->GetXmax(), 0));
-
-    CFDverticalLine1->SetLineStyle(2);
-    CFDverticalLine1->Draw();
-
-    CFDverticalLine2->SetLineStyle(2);
-    CFDverticalLine2->Draw();
-    // CFDhorizontalLine->SetLineStyle(2);
-    // CFDhorizontalLine->Draw();
-
-    zeroLine->SetLineStyle(2);
-    zeroLine->Draw();
-
-    shared_ptr<TText> text5 = make_shared<TText>(0.7,0.7, Form("CFD fine : %f", event.CFD.second));
-    text5->SetNDC();
-    text5->Draw();
-    shared_ptr<TText> text6 = make_shared<TText>(0.7,0.65, Form("CFD raw : %d", event.CFD.first));
-    text6->SetNDC();
-    text6->Draw();
-
-    gPad->Update();
-    gPad->WaitPrimitive("ggg");
-
     gPad->Clear();
 
+    //visualize cfd
+
+    shared_ptr<vector<int16_t>> delayed = delayWithGaussian(event.waveform, delay);
+    shared_ptr<vector<int16_t>> flippedAttenuated = reverseWaveform(attenuate(event.waveform, attenuation));
+    shared_ptr<vector<int16_t>> sum = sumSignals(delayed, flippedAttenuated);    
+
+    shared_ptr<TGraph> graphSum = drawWaveform(movingAverage(sum, movingAverageWindow), event.board, event.channel);
+
+    shared_ptr<TLine> zeroLine = make_shared<TLine>(graphSum->GetXaxis()->GetXmin(), 
+        0, graphSum->GetXaxis()->GetXmax(), 0);
+    zeroLine->SetLineStyle(2);
+
+    shared_ptr<TLine> CFDcoarseLine = make_shared<TLine>(event.CFD.first, 
+        graphSum->GetYaxis()->GetXmin(), event.CFD.first, graphSum->GetYaxis()->GetXmax());
+    // shared_ptr<TLine> CFDcoarseLine(new TLine(event.CFD.first, 
+    //     graphSum->GetYaxis()->GetXmin(), event.CFD.first, graphSum->GetYaxis()->GetXmax()));
+    CFDcoarseLine->SetLineStyle(2);
+
+    shared_ptr<TLine> CFDfineLine = make_shared<TLine>(event.CFD.first - event.CFD.second, 
+        graphSum->GetYaxis()->GetXmin(), event.CFD.first - event.CFD.second, graphSum->GetYaxis()->GetXmax());
+    CFDfineLine->SetLineStyle(2);
+
+    graphSum->Draw("APL");
+    zeroLine->Draw();
+    CFDcoarseLine->Draw();
+    CFDfineLine->Draw();
+
+    YTextCoordinate = 0.7;
+
+    shared_ptr<TText> CFDcoarseText(new TText(0.7, YTextCoordinate, Form("CFD coarse: %d", event.CFD.first)));
+    CFDcoarseText->SetNDC();
+    CFDcoarseText->Draw();
+
+    shared_ptr<TText> CFDfineText(new TText(0.7, YTextCoordinate -= 0.05, Form("CFD fine: %.2f", event.CFD.second)));
+    CFDfineText->SetNDC();
+    CFDfineText->Draw();
+
+    gPad->Update();
+    gPad->WaitPrimitive("ggg");
+    gPad->Clear();
+
+    shared_ptr<TGraph> graphNoiseRemoved = drawWaveform(movingAverage(event.waveform, 
+        movingAverageWindow), event.board, event.channel);
+    graphNoiseRemoved->Draw("APL");
+    gPad->Update();
+    gPad->WaitPrimitive("ggg");
+    gPad->Clear();    
 
 }
 
@@ -517,8 +506,7 @@ void drawEvents(const shared_ptr<vector<Event>> &events, string configFileName)
 
     for (const Event &event : *events)
     {
-        if(event.CFD.second > 1) {
+        // if(event.CFD.second > 1)
             drawEvent(event, jsonConfig);
-        }
     }
 }
